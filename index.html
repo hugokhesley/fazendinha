@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#63c5f2">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fazendinha">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>Bichinhos do Brasil – Fazendinha (protótipo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  :root { --ceu1:#7fd3ff; --ceu2:#c9f0ff; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#7fd3ff;
+    font-family:'Baloo 2', system-ui, sans-serif; user-select:none; -webkit-user-select:none;
+    touch-action:none; overscroll-behavior:none; }
+  #cena { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  .ceu-top { stop-color:var(--ceu1); transition:stop-color 1.5s; }
+  .ceu-bot { stop-color:var(--ceu2); transition:stop-color 1.5s; }
+  body.noite { --ceu1:#0d1b4a; --ceu2:#3a3f8f; background:#0d1b4a; }
+  #estrelas { opacity:0; transition:opacity 1.5s; }
+  body.noite #estrelas { opacity:1; }
+  #sol { cursor:pointer; transition:opacity 1s; }
+  #lua { opacity:0; transition:opacity 1s; pointer-events:none; }
+  body.noite #sol .raios, body.noite #sol .disco { opacity:0; }
+  body.noite #lua { opacity:1; }
+  #sol .raios, #sol .disco { transition:opacity 1s; }
+  .escurece { transition:opacity 1.5s; opacity:0; pointer-events:none; }
+  body.noite .escurece { opacity:.35; }
+  .zzz { opacity:0; transition:opacity 1s; font-weight:800; fill:#fff; font-size:34px; }
+  body.noite .zzz { opacity:1; animation:zz 2.4s ease-in-out infinite; }
+  @keyframes zz { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+
+  .bicho { cursor:pointer; }
+  .vivo, .corpo, .flor, .ovo { transform-box:fill-box; transform-origin:50% 100%; }
+  .vivo { animation:respira 3s ease-in-out infinite; }
+  @keyframes respira { 0%,100%{transform:scale(1,1)} 50%{transform:scale(1.015,1.03)} }
+  .corpo.pula { animation:pula .7s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes pula {
+    0%{transform:scale(1,1) translateY(0)}
+    15%{transform:scale(1.15,.85) translateY(0)}
+    45%{transform:scale(.92,1.12) translateY(-45px)}
+    70%{transform:scale(1.08,.92) translateY(0)}
+    100%{transform:scale(1,1) translateY(0)}
+  }
+  .boia { animation:boia 2.6s ease-in-out infinite; }
+  @keyframes boia { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-8px) rotate(2deg)} }
+  .nuvem { cursor:pointer; }
+  .nuvem-move { animation:nuvem 18s ease-in-out infinite alternate; }
+  @keyframes nuvem { from{transform:translateX(-30px)} to{transform:translateX(40px)} }
+  .flor { animation:cresce .6s cubic-bezier(.3,1.6,.5,1) both; }
+  @keyframes cresce { from{transform:scale(0)} to{transform:scale(1)} }
+  .ovo { animation:cresce .5s cubic-bezier(.3,1.6,.5,1) both; }
+
+  .particula { position:fixed; pointer-events:none; font-weight:800; font-size:44px;
+    animation:sobe 1.3s ease-out forwards; text-shadow:0 2px 0 rgba(0,0,0,.15); z-index:20; }
+  @keyframes sobe { from{transform:translate(-50%,-50%) scale(.4); opacity:1}
+    to{transform:translate(calc(-50% + var(--dx)), calc(-50% - 160px)) scale(1.3); opacity:0} }
+  .gota { position:fixed; width:8px; height:22px; border-radius:6px; background:#4aa8ff;
+    pointer-events:none; animation:cai 1s linear forwards; z-index:4; }
+  @keyframes cai { from{transform:translateY(0); opacity:1} to{transform:translateY(55vh); opacity:.2} }
+
+  #inicio { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:18px; background:linear-gradient(#7fd3ff,#bff0a0); z-index:10;
+    transition:opacity .6s; }
+  #inicio h1 { margin:0; font-size:clamp(40px,8vw,90px); color:#fff; font-weight:800;
+    text-shadow:0 5px 0 #2a8c3c, 0 8px 18px rgba(0,0,0,.2); letter-spacing:1px; text-align:center; line-height:1; }
+  #inicio p { margin:0; color:#1f5f2c; font-size:clamp(18px,3vw,26px); font-weight:600; }
+  #play { width:clamp(130px,22vw,190px); height:clamp(130px,22vw,190px); border-radius:50%; border:none;
+    background:#ffcf33; box-shadow:0 10px 0 #d99a00, 0 16px 30px rgba(0,0,0,.25); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; animation:pulsa 1.4s ease-in-out infinite; }
+  #play:active { transform:translateY(8px); box-shadow:0 2px 0 #d99a00; }
+  @keyframes pulsa { 0%,100%{scale:1} 50%{scale:1.08} }
+  /* ---------- modo aprender ---------- */
+  #btn-aprender { position:fixed; left:14px; top:14px; z-index:6; width:72px; height:72px; border-radius:50%;
+    border:none; background:#ffcf33; box-shadow:0 6px 0 #d99a00; cursor:pointer; font-size:40px; color:#fff;
+    text-shadow:0 2px 0 #d99a00; line-height:1; }
+  #aprender { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column;
+    background:linear-gradient(#bfe9ff,#e9ffd9); }
+  #aprender[hidden] { display:none; }
+  #barra { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; gap:12px; }
+  .redondo { width:64px; height:64px; border-radius:50%; border:none; background:#fff;
+    box-shadow:0 5px 0 rgba(0,0,0,.15); cursor:pointer; display:flex; align-items:center; justify-content:center; flex:none; }
+  #pergunta { display:flex; align-items:center; gap:14px; background:#fff; border-radius:44px;
+    padding:6px 8px 6px 18px; box-shadow:0 5px 0 rgba(0,0,0,.12); min-height:76px; }
+  #dica svg { height:60px; width:60px; display:block; }
+  #ouvir { background:#ffcf33; }
+  #estrelas-jogo { font-size:38px; color:rgba(0,0,0,.15); letter-spacing:2px; white-space:nowrap; }
+  #estrelas-jogo .on { color:#ffb800; }
+  #aprender.menu #pergunta, #aprender.menu #estrelas-jogo { visibility:hidden; }
+  #aprender.menu #opcoes, #aprender:not(.menu) #menu-jogos { display:none; }
+  #opcoes, #menu-jogos { flex:1; display:flex; align-items:center; justify-content:center; gap:3vw;
+    padding:1vh 3vw 6vh; flex-wrap:wrap; min-height:0; }
+  .cartao { width:min(calc(82vw / var(--n, 4)), 58vh); aspect-ratio:1; background:#fff; border:none; border-radius:32px;
+    box-shadow:0 10px 0 rgba(0,0,0,.13); padding:1.2%; cursor:pointer; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; font:inherit; font-weight:800; font-size:clamp(16px,2.4vw,28px);
+    color:#356; transition:opacity .3s; }
+  .cartao svg { width:86%; flex:1; min-height:0; overflow:visible; pointer-events:none; }
+  .cartao.errou { animation:nao .5s; opacity:.4; pointer-events:none; }
+  @keyframes nao { 0%,100%{translate:0} 25%{translate:-12px} 75%{translate:12px} }
+  @media (orientation:portrait) { .cartao { width:min(42vw,32vh); } }
+
+  #tela-cheia { position:fixed; right:14px; top:14px; z-index:6; width:52px; height:52px; border-radius:14px;
+    border:none; background:rgba(255,255,255,.65); font-size:26px; cursor:pointer; color:#245; }
+
+  /* ===== direção de arte v2: papel recortado ===== */
+  :root { --ceu1:#63c5f2; --ceu2:#fdf3cf; }
+  body.noite { --ceu1:#171a52; --ceu2:#4a3f8c; background:#171a52; }
+  .raios { transform-box:fill-box; transform-origin:center; animation:gira 50s linear infinite; }
+  @keyframes gira { to { transform:rotate(360deg); } }
+  .olho { transform-box:fill-box; transform-origin:center; animation:pisca 4.5s infinite; }
+  @keyframes pisca { 0%,93%,100%{transform:scaleY(1)} 96%{transform:scaleY(.1)} }
+  body.noite .olho { animation:none; transform:scaleY(.12); }
+  .abana { transform-box:fill-box; transform-origin:0% 100%; animation:abana .5s ease-in-out infinite alternate; }
+  @keyframes abana { from{transform:rotate(-7deg)} to{transform:rotate(9deg)} }
+  .zzz { fill:#fff; }
+
+  #inicio { background:linear-gradient(#63c5f2 0%, #d8f1ee 58%, #8fd66a 58%, #6bbf4b 100%); gap:10px;
+    overflow:hidden; padding-bottom:20vh; }
+  #inicio h1 { font-size:clamp(52px,11vw,132px); text-shadow:0 6px 0 #f08a1c, 0 14px 24px rgba(0,0,0,.18);
+    transform:rotate(-3deg); }
+  #inicio p { background:#fff; color:#f08a1c; padding:2px 24px; border-radius:30px; font-weight:800;
+    box-shadow:0 4px 0 rgba(0,0,0,.1); }
+  #play { background:#ff6b5e; box-shadow:0 10px 0 #c9443a, 0 18px 30px rgba(0,0,0,.22); margin-top:12px;
+    border:6px solid #fff; }
+  #play:active { box-shadow:0 2px 0 #c9443a; }
+  #inicio-bichos { position:absolute; left:0; right:0; bottom:3vh; display:flex; justify-content:space-evenly;
+    align-items:flex-end; pointer-events:none; }
+  #inicio-bichos svg { height:24vh; width:auto; overflow:visible; }
+  #inicio-bichos svg:nth-child(2), #inicio-bichos svg:nth-child(4) { height:17vh; }
+
+  #tela-cheia { border-radius:50%; width:56px; height:56px; background:#fff; box-shadow:0 5px 0 rgba(0,0,0,.15);
+    display:flex; align-items:center; justify-content:center; }
+  #btn-aprender { width:78px; height:78px; border:6px solid #fff; box-shadow:0 6px 0 #d99a00, 0 12px 18px rgba(0,0,0,.15); }
+
+  #aprender { background:
+    radial-gradient(circle at 10% 22%, #ffe3a3 0 13vw, transparent 13.1vw),
+    radial-gradient(circle at 90% 84%, #c9ecc0 0 18vw, transparent 18.1vw),
+    radial-gradient(circle at 78% 6%, #cfe9ff 0 11vw, transparent 11.1vw),
+    #fff6e0; }
+  .redondo, #pergunta { box-shadow:0 5px 0 #ecd9ac; }
+  #ouvir { box-shadow:0 5px 0 #d99a00; }
+  .cartao { border:6px solid #fff; border-radius:40px; color:#5a4632; background:#e6f1f8;
+    box-shadow:0 10px 0 #ecd9ac, 0 20px 28px rgba(120,90,20,.12); }
+  #menu-jogos .cartao:nth-child(1) { background:#ffe1e6; }
+  #menu-jogos .cartao:nth-child(2) { background:#fff0bf; }
+  #menu-jogos .cartao:nth-child(3) { background:#d9f2d0; }
+  #menu-jogos .cartao:nth-child(4) { background:#d6ecff; }
+  #estrelas-jogo span { display:inline-block; color:#e6d6ac; }
+  #estrelas-jogo .nova { animation:pop .5s cubic-bezier(.3,1.8,.5,1); }
+  @keyframes pop { from{transform:scale(0) rotate(-90deg)} to{transform:scale(1) rotate(0)} }
+  @media (prefers-reduced-motion: reduce) { .raios, .nuvem-move, .abana { animation:none; } }
+
+  /* ===== letras, números e contorno ===== */
+  #menu-jogos { gap:2.4vw; align-content:center; }
+  #menu-jogos .cartao { width:min(19vw,36vh); font-size:clamp(13px,2vw,24px); white-space:nowrap; border-radius:32px; }
+  #menu-jogos .cartao:nth-child(5) { background:#e9defa; }
+  #menu-jogos .cartao:nth-child(6) { background:#ffe6cc; }
+  #menu-jogos .cartao:nth-child(7) { background:#d5f3ee; }
+  #menu-jogos .cartao:nth-child(8) { background:#fde0ef; }
+  #tracar { flex:1; display:flex; align-items:center; justify-content:center; gap:6vw; padding:0 4vw 5vh; min-height:0; }
+  #aprender.menu #tracar, #aprender:not(.tracando) #tracar, #aprender.tracando #opcoes { display:none; }
+  #quadro { background:#fff; border-radius:40px; box-shadow:0 10px 0 #ecd9ac, 0 20px 28px rgba(120,90,20,.12);
+    padding:2vh; height:min(74vh,66vw); aspect-ratio:100/120; touch-action:none; }
+  #glifo { width:100%; height:100%; display:block; touch-action:none; cursor:pointer; }
+  .t-base { fill:none; stroke:#efe6d2; stroke-width:17; stroke-linecap:round; stroke-linejoin:round; }
+  .t-feito { fill:none; stroke-width:17; stroke-linecap:round; stroke-linejoin:round; }
+  .t-guia { fill:none; stroke:#a8946a; stroke-width:2.5; stroke-linecap:round; stroke-dasharray:.1 6; }
+  .t-ponto { fill:#ffcf33; stroke:#fff; stroke-width:2.5; animation:pulsa 1s ease-in-out infinite;
+    transform-box:fill-box; transform-origin:center; pointer-events:none; }
+  .t-mini { fill:none; stroke:#2f9bd6; stroke-width:7; stroke-linecap:round; stroke-dasharray:.1 12; }
+  #premio { font-size:min(24vh,20vw); line-height:1; width:min(34vh,28vw); text-align:center; }
+  #premio svg { width:100%; overflow:visible; display:block; }
+  #premio.salta { animation:pula .7s cubic-bezier(.3,1.6,.5,1); }
+  @media (orientation:portrait) {
+    #menu-jogos .cartao { width:min(40vw,19vh); }
+    #tracar { flex-direction:column; gap:2vh; } #quadro { height:min(58vh,105vw); }
+    #premio { font-size:14vh; width:26vh; }
+  }
+
+  /* ===== v3: vida no cenário, módulo Brincar ===== */
+  .luz-sol { transition:opacity 1.5s; } body.noite .luz-sol { opacity:0; }
+  .passaro { animation:passa 46s linear infinite; } .passaro.p2 { animation-duration:62s; animation-delay:-20s; }
+  @keyframes passa { from{transform:translate(-80px,230px)} 50%{transform:translate(800px,170px)} to{transform:translate(1700px,250px)} }
+  body.noite .passaro, body.noite .voa { opacity:0; } .passaro, .voa { transition:opacity 1s; }
+  .voa.v1 { animation:voa1 19s ease-in-out infinite; } .voa.v2 { animation:voa2 23s ease-in-out infinite; }
+  @keyframes voa1 { 0%,100%{transform:translate(260px,640px)} 25%{transform:translate(470px,560px)} 50%{transform:translate(770px,650px)} 75%{transform:translate(590px,740px)} }
+  @keyframes voa2 { 0%,100%{transform:translate(1420px,560px)} 30%{transform:translate(1180px,470px)} 60%{transform:translate(1060px,620px)} 80%{transform:translate(1330px,640px)} }
+  .asas { transform-box:fill-box; transform-origin:center; animation:bate .28s ease-in-out infinite alternate; }
+  @keyframes bate { from{transform:scaleX(1)} to{transform:scaleX(.25)} }
+  .vagalumes { opacity:0; transition:opacity 1.5s; } body.noite .vagalumes { opacity:1; }
+  .vagalumes circle { animation:brilha 2.4s ease-in-out infinite; }
+  .vagalumes circle:nth-child(2n) { animation-delay:-.8s; } .vagalumes circle:nth-child(3n) { animation-delay:-1.6s; }
+  @keyframes brilha { 0%,100%{opacity:.15} 50%{opacity:1} }
+
+  #btn-brincar { position:fixed; left:106px; top:14px; z-index:6; width:78px; height:78px; border-radius:50%;
+    border:6px solid #fff; background:#4fbf5a; box-shadow:0 6px 0 #2f8f3c, 0 12px 18px rgba(0,0,0,.15); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; padding:0; }
+  #menu-jogos.m-brincar .cartao { width:min(20vw,54vh); font-size:clamp(15px,2.3vw,28px); }
+  #arena { flex:1; position:relative; min-height:0; margin:0 3vw 4vh; border-radius:40px; overflow:hidden;
+    touch-action:none; box-shadow:0 10px 0 #ecd9ac; }
+  #aprender:not(.arena) #arena, #aprender.arena #opcoes { display:none; }
+  .a-pega { background:radial-gradient(circle at 18% 28%, #a3e27f 0 8vw, transparent 8.1vw),
+    radial-gradient(circle at 76% 72%, #a3e27f 0 11vw, transparent 11.1vw), radial-gradient(circle at 60% 20%, #79c653 0 6vw, transparent 6.1vw), #86d360; }
+  .a-labirinto { background:radial-gradient(circle at 12% 80%, #8fd866 0 9vw, transparent 9.1vw), radial-gradient(circle at 88% 16%, #8fd866 0 8vw, transparent 8.1vw), #74c44e; }
+  .a-baloes { background:radial-gradient(ellipse at 20% 24%, #fff 0 6vw, transparent 6.1vw), radial-gradient(ellipse at 27% 21%, #fff 0 5vw, transparent 5.1vw),
+    radial-gradient(ellipse at 74% 40%, #fff 0 5vw, transparent 5.1vw), radial-gradient(ellipse at 80% 37%, #fff 0 4vw, transparent 4.1vw), linear-gradient(#63c5f2,#d9f3ff); }
+  .a-memoria { background:#fde4b4; }
+  .fujao { position:absolute; width:min(22vh,18vw); aspect-ratio:1; background:none; border:none; padding:0; cursor:pointer;
+    transition:left linear, top linear; }
+  .fujao svg { width:100%; height:100%; overflow:visible; pointer-events:none; animation:saltita .4s ease-in-out infinite alternate; }
+  @keyframes saltita { from{transform:translateY(0)} to{transform:translateY(-9%)} }
+  .fujao.pego svg { animation:giro .7s; }
+  @keyframes giro { 50%{transform:rotate(180deg) scale(1.3)} to{transform:rotate(360deg) scale(1)} }
+  .balao { position:absolute; top:100%; width:min(19vh,15vw); background:none; border:none; padding:0; cursor:pointer;
+    animation:sobeBalao linear forwards; }
+  .balao svg { width:100%; display:block; pointer-events:none; }
+  @keyframes sobeBalao { to{transform:translateY(-130vh)} }
+  .treme { animation:nao .5s; }
+  .grade-mem { position:absolute; inset:0; display:grid; grid-template-columns:repeat(var(--col), auto); gap:2.6vh 2vw;
+    align-content:center; justify-content:center; }
+  .carta { width:min(calc(70vw / var(--col)), calc(60vh / var(--lin))); aspect-ratio:1; position:relative; background:none;
+    border:none; padding:0; cursor:pointer; transform-style:preserve-3d; transition:transform .4s; }
+  .carta.virada { transform:rotateY(180deg); }
+  .carta .verso, .carta .frente { position:absolute; inset:0; border-radius:24px; backface-visibility:hidden;
+    -webkit-backface-visibility:hidden; box-shadow:0 6px 0 rgba(120,90,20,.2); border:6px solid #fff; }
+  .carta .verso { background:#ff8c1a radial-gradient(circle, #ffb65c 0 22%, transparent 23%) 0 0/34px 34px; }
+  .carta .frente { background:#fff; transform:rotateY(180deg); padding:8%; display:flex; }
+  .carta .frente svg { width:100%; height:100%; overflow:visible; }
+  .carta.par .frente { background:#e3f7d6; }
+  .lab { width:100%; height:100%; display:block; touch-action:none; cursor:pointer; }
+  .andante { transition:transform .22s ease-out; }
+  .anel { fill:none; stroke:#fff; stroke-width:6; opacity:.85; animation:pulsa 1s ease-in-out infinite;
+    transform-box:fill-box; transform-origin:center; }
+  @media (orientation:portrait) { #menu-jogos.m-brincar .cartao { width:min(40vw,30vh); } }
+  @media (prefers-reduced-motion: reduce) { .passaro, .voa, .asas { animation:none; } }
+
+  /* ===== fases do Brincar ===== */
+  .a-fases { background:#fff0cc; }
+  .grade-fases { position:absolute; inset:0; display:grid; grid-template-columns:repeat(5, auto); gap:4vh 3vw;
+    align-content:center; justify-content:center; }
+  .fase { width:min(13vw,25vh); aspect-ratio:1; border-radius:50%; border:6px solid #fff; font:inherit; font-weight:800;
+    font-size:min(6.5vw,12vh); line-height:1; color:#fff; background:#4fbf5a; box-shadow:0 8px 0 #2f8f3c; cursor:pointer;
+    position:relative; padding:0; }
+  .fase.feita { background:#ffb800; box-shadow:0 8px 0 #c98a00; }
+  .fase.feita::after { content:'★'; position:absolute; top:-16%; right:-8%; font-size:.5em; color:#fff;
+    background:#ff6b5e; border-radius:50%; width:1.5em; height:1.5em; display:flex; align-items:center; justify-content:center; border:3px solid #fff; }
+  .fase.atual { animation:pulsa 1.2s ease-in-out infinite; }
+  .fase.trancada { background:#d5dbe0; box-shadow:0 8px 0 #b0b9c1; color:#f4f6f8; }
+  .fujao { width:calc(min(22vh,18vw) * var(--tam, 1)); }
+  .fujao svg { transition:opacity .25s; }
+  .fujao.some { pointer-events:none; } .fujao.some svg { opacity:0; }
+  .balao { width:calc(min(19vh,15vw) * var(--tam, 1)); }
+  @media (orientation:portrait) { .fase { width:min(16vw,12vh); font-size:min(8vw,6vh); } }
+</style>
+</head>
+<body>
+
+<div id="inicio">
+  <h1>Fazendinha</h1>
+  <p>Bichinhos do Brasil</p>
+  <button id="play" aria-label="Começar">
+    <svg width="46%" viewBox="0 0 100 100"><path d="M30 18 L84 50 L30 82 Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/></svg>
+  </button>
+  <div id="inicio-bichos"></div>
+</div>
+<button id="tela-cheia" aria-label="Tela cheia"><svg viewBox="0 0 24 24" width="28"><path d="M4 9 V4 H9 M15 4 H20 V9 M20 15 V20 H15 M9 20 H4 V15" fill="none" stroke="#3a7bff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<button id="btn-aprender" aria-label="Aprender">★</button>
+<button id="btn-brincar" aria-label="Brincar"><svg viewBox="0 0 24 24" width="42"><ellipse cx="12" cy="9.5" rx="6.5" ry="7.5" fill="#fff"/><path d="M12 16.5 l-2 2.6 h4 Z" fill="#fff"/><path d="M12 19 q-2 2 0 3.6" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+
+<div id="aprender" class="menu" hidden>
+  <div id="barra">
+    <button id="voltar" class="redondo" aria-label="Voltar">
+      <svg viewBox="0 0 24 24" width="36"><path d="M3 11 L12 3 L21 11 V21 H14 V14 H10 V21 H3 Z" fill="#3a7bff" stroke="#3a7bff" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    </button>
+    <div id="pergunta">
+      <span id="dica"></span>
+      <button id="ouvir" class="redondo" aria-label="Ouvir de novo">
+        <svg viewBox="0 0 24 24" width="36"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="#5a3a1a"/><path d="M16 9 q3 3 0 6 M18.5 6.5 q5.5 5.5 0 11" stroke="#5a3a1a" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div id="estrelas-jogo"></div>
+  </div>
+  <div id="menu-jogos"></div>
+  <div id="opcoes"></div>
+  <div id="arena"></div>
+  <div id="tracar"><div id="quadro"><svg id="glifo" viewBox="0 0 100 120"></svg></div><div id="premio"></div></div>
+</div>
+
+<svg id="cena" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="gJum" cx=".35" cy=".28" r=".85"><stop offset="0" stop-color="#c9cbd5"/><stop offset=".55" stop-color="#a7a9b5"/><stop offset="1" stop-color="#888b9a"/></radialGradient>
+    <radialGradient id="gBranco" cx=".35" cy=".28" r=".85"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#fffaf2"/><stop offset="1" stop-color="#e4d6bd"/></radialGradient>
+    <radialGradient id="gPorco" cx=".35" cy=".28" r=".85"><stop offset="0" stop-color="#ffd6de"/><stop offset=".55" stop-color="#f8b4c4"/><stop offset="1" stop-color="#e68aa2"/></radialGradient>
+    <radialGradient id="gCao" cx=".35" cy=".28" r=".85"><stop offset="0" stop-color="#f6c888"/><stop offset=".55" stop-color="#e3a050"/><stop offset="1" stop-color="#c17a2d"/></radialGradient>
+    <radialGradient id="gPato" cx=".35" cy=".28" r=".85"><stop offset="0" stop-color="#fff2a8"/><stop offset=".55" stop-color="#ffd84d"/><stop offset="1" stop-color="#efb020"/></radialGradient>
+    <radialGradient id="gFolha" cx=".35" cy=".28" r=".85"><stop offset="0" stop-color="#78d169"/><stop offset=".55" stop-color="#4fae4a"/><stop offset="1" stop-color="#358c3e"/></radialGradient>
+    <radialGradient id="gSolD" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fff08a"/><stop offset="1" stop-color="#ffc21a"/></radialGradient>
+    <radialGradient id="gBrilho" cx=".32" cy=".28" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".4"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></radialGradient>
+    <radialGradient id="gLuz"><stop offset="0" stop-color="#fff3b0" stop-opacity=".2"/><stop offset="1" stop-color="#fff3b0" stop-opacity="0"/></radialGradient>
+    <linearGradient id="gColina1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bdea93"/><stop offset=".5" stop-color="#8fd266"/></linearGradient>
+    <linearGradient id="gColina2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#97dc6c"/><stop offset=".6" stop-color="#70c14b"/></linearGradient>
+    <linearGradient id="gColina3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#82d25c"/><stop offset="1" stop-color="#58a93d"/></linearGradient>
+    <linearGradient id="gSerra" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#96cfb2"/><stop offset=".7" stop-color="#d4f0e0"/></linearGradient>
+    <linearGradient id="gParede" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fffaea"/><stop offset="1" stop-color="#f1dcab"/></linearGradient>
+    <linearGradient id="gTelhado" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2845f"/><stop offset="1" stop-color="#cf5237"/></linearGradient>
+    <linearGradient id="gCeu" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" class="ceu-top"/><stop offset="1" class="ceu-bot"/>
+    </linearGradient>
+    <linearGradient id="gAgua" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fdcf7"/><stop offset="1" stop-color="#3fa9e8"/>
+    </linearGradient>
+    <radialGradient id="gHalo">
+      <stop offset=".4" stop-color="#fff6c2" stop-opacity=".85"/><stop offset="1" stop-color="#fff6c2" stop-opacity="0"/>
+    </radialGradient>
+    <g id="tufo" fill="none" stroke="#57a83e" stroke-width="6" stroke-linecap="round">
+      <path d="M0 0 q-4 -18 -12 -22 M0 0 q0 -22 2 -30 M0 0 q6 -16 14 -20"/>
+    </g>
+  </defs>
+
+  <!-- céu -->
+  <rect id="ceu" x="-200" y="-100" width="2000" height="800" fill="url(#gCeu)"/>
+  <g id="estrelas" fill="#fff8c4">
+    <circle cx="120" cy="80" r="4"/><circle cx="260" cy="200" r="3"/><circle cx="420" cy="60" r="5"/>
+    <circle cx="610" cy="170" r="3"/><circle cx="700" cy="40" r="4"/><circle cx="960" cy="210" r="3"/>
+    <circle cx="1060" cy="70" r="5"/><circle cx="1180" cy="230" r="3"/><circle cx="1520" cy="290" r="4"/>
+    <circle cx="1560" cy="60" r="3"/><circle cx="40" cy="300" r="3"/><circle cx="880" cy="120" r="4"/>
+  </g>
+
+  <!-- sol / lua -->
+  <g id="sol" transform="translate(1380,150)">
+    <circle r="140" fill="transparent"/>
+    <g class="disco"><circle r="200" fill="url(#gHalo)"/></g>
+    <g class="raios" stroke="#ffcf33" stroke-width="16" stroke-linecap="round">
+      <line y1="-108" y2="-130"/><line y1="-108" y2="-130" transform="rotate(36)"/><line y1="-108" y2="-130" transform="rotate(72)"/>
+      <line y1="-108" y2="-130" transform="rotate(108)"/><line y1="-108" y2="-130" transform="rotate(144)"/><line y1="-108" y2="-130" transform="rotate(180)"/>
+      <line y1="-108" y2="-130" transform="rotate(216)"/><line y1="-108" y2="-130" transform="rotate(252)"/><line y1="-108" y2="-130" transform="rotate(288)"/>
+      <line y1="-108" y2="-130" transform="rotate(324)"/>
+    </g>
+    <g class="disco">
+      <circle r="88" fill="url(#gSolD)"/>
+      <ellipse cx="-26" cy="-34" rx="44" ry="34" fill="#ffe27a" opacity=".7"/>
+      <ellipse cx="-28" cy="-8" rx="8" ry="10" fill="#7a4a1a"/><ellipse cx="28" cy="-8" rx="8" ry="10" fill="#7a4a1a"/>
+      <path d="M-26 22 Q0 46 26 22" fill="none" stroke="#7a4a1a" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="-52" cy="20" r="13" fill="#ff8f5e" opacity=".55"/><circle cx="52" cy="20" r="13" fill="#ff8f5e" opacity=".55"/>
+    </g>
+    <g id="lua"><path d="M14 -76 A78 78 0 1 0 66 46 A62 62 0 1 1 14 -76 Z" fill="#fff4c2"/></g>
+  </g>
+
+  <!-- nuvens -->
+  <g class="nuvem-move"><g class="nuvem" transform="translate(330,140)">
+    <ellipse cx="0" cy="8" rx="120" ry="42" fill="#e6f4fb"/>
+    <ellipse cx="0" cy="0" rx="115" ry="44" fill="#fff"/><circle cx="-48" cy="-26" r="46" fill="#fff"/><circle cx="30" cy="-40" r="58" fill="#fff"/>
+  </g></g>
+  <g class="nuvem-move" style="animation-duration:24s"><g class="nuvem" transform="translate(840,105)">
+    <ellipse cx="0" cy="8" rx="98" ry="36" fill="#e6f4fb"/>
+    <ellipse cx="0" cy="0" rx="94" ry="38" fill="#fff"/><circle cx="-36" cy="-22" r="38" fill="#fff"/><circle cx="26" cy="-32" r="46" fill="#fff"/>
+  </g></g>
+
+  <!-- serra ao fundo, colinas e chão -->
+  <path d="M-200 540 L120 410 Q200 378 290 420 L500 505 L740 410 Q830 376 930 425 L1170 520 L1400 440 Q1490 408 1580 446 L1800 530 V620 H-200 Z" fill="url(#gSerra)"/>
+  <path d="M-200 530 Q200 400 600 505 T1400 478 T1900 505 V900 H-200 Z" fill="url(#gColina1)"/>
+  <path d="M-200 570 Q400 528 800 572 T1800 560 V900 H-200 Z" fill="url(#gColina2)"/>
+  <path d="M-200 680 Q300 640 800 690 T1800 670 V900 H-200 Z" fill="url(#gColina3)"/>
+
+  <!-- cajueiro -->
+  <g transform="translate(1170,560)">
+    <ellipse cx="0" cy="4" rx="90" ry="14" fill="rgba(0,0,0,.12)"/>
+    <path d="M-16 0 Q-8 -70 -22 -130 H22 Q8 -70 16 0 Z" fill="#9b6a3c"/>
+    <circle cx="-72" cy="-160" r="62" fill="#3f9e45"/><circle cx="72" cy="-160" r="62" fill="#3f9e45"/>
+    <circle cx="0" cy="-215" r="84" fill="url(#gFolha)"/><circle cx="0" cy="-140" r="70" fill="url(#gFolha)"/>
+    <circle cx="-30" cy="-240" r="40" fill="#63c25a"/><circle cx="50" cy="-190" r="30" fill="#63c25a"/>
+    <g><ellipse cx="-60" cy="-140" rx="11" ry="15" fill="#f04a3a"/><ellipse cx="-60" cy="-122" rx="7" ry="5" fill="#8a5a2c"/></g>
+    <g><ellipse cx="20" cy="-170" rx="11" ry="15" fill="#ffc21a"/><ellipse cx="20" cy="-152" rx="7" ry="5" fill="#8a5a2c"/></g>
+    <g><ellipse cx="78" cy="-128" rx="11" ry="15" fill="#f04a3a"/><ellipse cx="78" cy="-110" rx="7" ry="5" fill="#8a5a2c"/></g>
+    <g><ellipse cx="-14" cy="-250" rx="11" ry="15" fill="#ffc21a"/><ellipse cx="-14" cy="-232" rx="7" ry="5" fill="#8a5a2c"/></g>
+  </g>
+
+  <!-- bandeirinhas de São João (geradas por script) -->
+  <path d="M190 338 Q640 470 1100 380" fill="none" stroke="#8a6a4a" stroke-width="3"/>
+  <g id="bandeirinhas"></g>
+
+  <!-- cerca -->
+  <g>
+    <rect x="380" y="468" width="770" height="13" rx="6" fill="#c98d52"/><rect x="380" y="502" width="770" height="13" rx="6" fill="#c98d52"/>
+    <g fill="#dfa869">
+      <rect x="391" y="440" width="20" height="100" rx="10"/><rect x="471" y="440" width="20" height="100" rx="10"/>
+      <rect x="551" y="440" width="20" height="100" rx="10"/><rect x="631" y="440" width="20" height="100" rx="10"/>
+      <rect x="711" y="440" width="20" height="100" rx="10"/><rect x="791" y="440" width="20" height="100" rx="10"/>
+      <rect x="871" y="440" width="20" height="100" rx="10"/><rect x="951" y="440" width="20" height="100" rx="10"/>
+      <rect x="1031" y="440" width="20" height="100" rx="10"/><rect x="1111" y="440" width="20" height="100" rx="10"/>
+    </g>
+  </g>
+
+  <!-- casinha de barra pintada -->
+  <g transform="translate(60,320)">
+    <ellipse cx="130" cy="256" rx="150" ry="16" fill="rgba(0,0,0,.12)"/>
+    <rect x="20" y="95" width="220" height="160" fill="url(#gParede)"/>
+    <rect x="20" y="212" width="220" height="43" fill="#f6b94f"/>
+    <path d="M-8 106 L130 6 L268 106 Z" fill="url(#gTelhado)"/>
+    <path d="M20 106 H240 V118 H20 Z" fill="rgba(0,0,0,.12)"/>
+    <circle cx="130" cy="68" r="13" fill="url(#gParede)"/>
+    <rect x="106" y="158" width="52" height="97" rx="8" fill="#2f9bd6"/><circle cx="147" cy="210" r="5" fill="url(#gParede)"/>
+    <rect x="38" y="134" width="50" height="50" rx="8" fill="#2f9bd6"/><rect x="45" y="141" width="36" height="36" rx="4" fill="#bfe9fb"/>
+    <rect x="176" y="134" width="50" height="50" rx="8" fill="#2f9bd6"/><rect x="183" y="141" width="36" height="36" rx="4" fill="#bfe9fb"/>
+    <g fill="url(#gFolha)"><circle cx="2" cy="246" r="26"/><circle cx="-26" cy="254" r="20"/><circle cx="262" cy="248" r="24"/></g>
+    <g fill="#ff7ab6"><circle cx="-4" cy="234" r="6"/><circle cx="-28" cy="246" r="5"/><circle cx="266" cy="236" r="6"/></g>
+  </g>
+
+  <!-- mandacaru florido -->
+  <g transform="translate(1530,545)">
+    <ellipse cx="0" cy="40" rx="70" ry="12" fill="rgba(0,0,0,.12)"/>
+    <g fill="#3f9b4a">
+      <rect x="-20" y="-160" width="40" height="200" rx="20"/>
+      <path d="M-18 -40 H-52 a16 16 0 0 1 -16 -16 V-112 a15 15 0 0 1 30 0 V-70 H-18 Z"/>
+      <path d="M18 -72 H52 a16 16 0 0 0 16 -16 V-136 a15 15 0 0 0 -30 0 V-102 H18 Z"/>
+    </g>
+    <g stroke="#5fbf6a" stroke-width="5" stroke-linecap="round"><line x1="0" y1="-140" x2="0" y2="24"/><line x1="-53" y1="-108" x2="-53" y2="-62"/><line x1="53" y1="-132" x2="53" y2="-94"/></g>
+    <g fill="#ff7ab6"><circle cx="-10" cy="-166" r="9"/><circle cx="10" cy="-166" r="9"/><circle cx="0" cy="-176" r="9"/></g><circle cx="0" cy="-166" r="6" fill="#ffcf33"/>
+  </g>
+
+  <!-- terreiro da galinha e lama do porco -->
+  <ellipse cx="280" cy="852" rx="250" ry="46" fill="#ecd29a"/>
+  <g fill="#c9a86a"><circle cx="120" cy="840" r="4"/><circle cx="200" cy="876" r="4"/><circle cx="330" cy="880" r="4"/><circle cx="470" cy="868" r="4"/><circle cx="90" cy="866" r="3"/></g>
+  <ellipse cx="690" cy="852" rx="130" ry="28" fill="#a87848"/><ellipse cx="660" cy="846" rx="50" ry="10" fill="#b98a5a"/>
+
+  <!-- açude -->
+  <ellipse cx="1260" cy="728" rx="268" ry="102" fill="#ecd9a2"/>
+  <ellipse cx="1260" cy="726" rx="248" ry="88" fill="url(#gAgua)"/>
+  <path d="M1090 716 q22 -10 44 0 M1350 770 q22 -10 44 0 M1200 680 q22 -10 44 0" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" opacity=".7"/>
+  <g><circle cx="1120" cy="768" r="24" fill="url(#gFolha)"/><path d="M1120 768 L1146 758 L1144 778 Z" fill="#5cc0f0"/><circle cx="1112" cy="762" r="8" fill="#ff9ecb"/></g>
+  <g><circle cx="1420" cy="700" r="20" fill="url(#gFolha)"/><path d="M1420 700 L1398 692 L1400 710 Z" fill="#7fd0f5"/></g>
+  <g stroke="#3f8f3f" stroke-width="6" stroke-linecap="round"><line x1="1486" y1="760" x2="1480" y2="670"/><line x1="1506" y1="770" x2="1512" y2="690"/></g>
+  <rect x="1473" y="650" width="14" height="36" rx="7" fill="#8a5a2c"/><rect x="1505" y="668" width="14" height="36" rx="7" fill="#8a5a2c"/>
+  <ellipse cx="1040" cy="790" rx="26" ry="15" fill="#b9bcc6"/><ellipse cx="1066" cy="800" rx="16" ry="10" fill="#a2a5b1"/>
+
+  <!-- tufos de capim -->
+  <use href="#tufo" x="470" y="640"/><use href="#tufo" x="760" y="700"/><use href="#tufo" x="1010" y="640"/><use href="#tufo" x="60" y="700"/>
+  <use href="#tufo" x="880" y="830"/><use href="#tufo" x="1180" y="860"/><use href="#tufo" x="1500" y="850"/><use href="#tufo" x="560" y="770"/>
+  <use href="#tufo" x="1420" y="610"/><use href="#tufo" x="40" y="860"/>
+
+
+  <!-- pássaros, girassóis e moita -->
+  <g class="passaro" fill="none" stroke="#5a6b8a" stroke-width="5" stroke-linecap="round"><path d="M0 0 q12 -14 22 0 q10 -14 22 0"/></g>
+  <g class="passaro p2" fill="none" stroke="#5a6b8a" stroke-width="4" stroke-linecap="round"><path d="M0 0 q9 -11 17 0 q8 -11 17 0"/></g>
+  <g transform="translate(1086,566)"><path d="M0 0 V-120" stroke="#3f9e45" stroke-width="8" stroke-linecap="round"/><ellipse cx="-16" cy="-50" rx="18" ry="9" fill="#4fb04a" transform="rotate(-25 -16 -50)"/><ellipse cx="16" cy="-74" rx="18" ry="9" fill="#4fb04a" transform="rotate(25 16 -74)"/>
+    <g fill="#ffc21a"><ellipse cx="0" cy="-158" rx="10" ry="20"/><ellipse cx="0" cy="-158" rx="10" ry="20" transform="rotate(45 0 -130)"/><ellipse cx="0" cy="-158" rx="10" ry="20" transform="rotate(90 0 -130)"/><ellipse cx="0" cy="-158" rx="10" ry="20" transform="rotate(135 0 -130)"/><ellipse cx="0" cy="-158" rx="10" ry="20" transform="rotate(180 0 -130)"/><ellipse cx="0" cy="-158" rx="10" ry="20" transform="rotate(225 0 -130)"/><ellipse cx="0" cy="-158" rx="10" ry="20" transform="rotate(270 0 -130)"/><ellipse cx="0" cy="-158" rx="10" ry="20" transform="rotate(315 0 -130)"/></g>
+    <circle cx="0" cy="-130" r="20" fill="#8a5a2c"/><circle cx="-5" cy="-135" r="8" fill="#a26d38"/></g>
+  <g transform="translate(1570,900)"><circle cx="0" cy="0" r="92" fill="#358c3e"/><circle cx="-90" cy="20" r="66" fill="url(#gFolha)"/><circle cx="-20" cy="-40" r="60" fill="url(#gFolha)"/>
+    <g fill="#ff7ab6"><circle cx="-100" cy="-20" r="9"/><circle cx="-30" cy="-78" r="9"/><circle cx="-56" cy="-10" r="8"/></g><g fill="#ffcf33"><circle cx="-100" cy="-20" r="3.5"/><circle cx="-30" cy="-78" r="3.5"/><circle cx="-56" cy="-10" r="3"/></g></g>
+  <g id="flores"></g>
+  <g id="ovos"></g>
+
+  <!-- ===== BICHOS (origem = chão, entre os pés) ===== -->
+
+  <!-- JUMENTO -->
+  <g class="bicho" data-bicho="jumento" transform="translate(860,615)">
+    <ellipse cx="0" cy="0" rx="90" ry="14" fill="rgba(0,0,0,.14)"/>
+    <g class="vivo" style="animation-delay:-.5s"><g class="corpo">
+      <path d="M-62 -100 q-34 6 -30 46" fill="none" stroke="#8a8c9a" stroke-width="9" stroke-linecap="round"/><circle cx="-92" cy="-50" r="11" fill="#4b4c5a"/>
+      <rect x="-50" y="-58" width="28" height="58" rx="12" fill="#9093a1"/><rect x="22" y="-58" width="28" height="58" rx="12" fill="#9093a1"/>
+      <rect x="-50" y="-16" width="28" height="16" rx="7" fill="#4b4c5a"/><rect x="22" y="-16" width="28" height="16" rx="7" fill="#4b4c5a"/>
+      <ellipse cx="0" cy="-90" rx="72" ry="58" fill="url(#gJum)"/>
+      <ellipse cx="0" cy="-72" rx="46" ry="34" fill="#c9cad3"/>
+      <ellipse cx="-36" cy="-262" rx="18" ry="48" fill="url(#gJum)" transform="rotate(-12 -36 -262)"/><ellipse cx="-36" cy="-258" rx="8" ry="32" fill="#f6b9c6" transform="rotate(-12 -36 -258)"/>
+      <ellipse cx="36" cy="-262" rx="18" ry="48" fill="url(#gJum)" transform="rotate(12 36 -262)"/><ellipse cx="36" cy="-258" rx="8" ry="32" fill="#f6b9c6" transform="rotate(12 36 -258)"/>
+      <ellipse cx="0" cy="-180" rx="54" ry="58" fill="url(#gJum)"/>
+      <ellipse cx="0" cy="-234" rx="17" ry="13" fill="#4b4c5a"/>
+      <path d="M-44 -134 Q0 -110 44 -134 L38 -118 Q0 -96 -38 -118 Z" fill="url(#gTelhado)"/>
+      <ellipse cx="0" cy="-152" rx="40" ry="29" fill="#f1e9df"/>
+      <ellipse cx="-13" cy="-156" rx="5" ry="7" fill="#8a8c9a"/><ellipse cx="13" cy="-156" rx="5" ry="7" fill="#8a8c9a"/>
+      <path d="M-13 -139 q13 9 26 0" fill="none" stroke="#8a8c9a" stroke-width="4" stroke-linecap="round"/>
+      <g class="olho"><ellipse cx="-22" cy="-196" rx="9" ry="11" fill="#3b2a20"/><circle cx="-19" cy="-200" r="3.5" fill="#fff"/></g>
+      <g class="olho"><ellipse cx="22" cy="-196" rx="9" ry="11" fill="#3b2a20"/><circle cx="25" cy="-200" r="3.5" fill="#fff"/></g>
+      <text class="zzz" x="60" y="-290">Zzz</text>
+    </g></g>
+  </g>
+
+  <!-- VACA -->
+  <g class="bicho" data-bicho="vaca" transform="translate(520,675)">
+    <ellipse cx="0" cy="0" rx="98" ry="15" fill="rgba(0,0,0,.14)"/>
+    <g class="vivo"><g class="corpo">
+      <path d="M68 -104 q34 -4 30 40" fill="none" stroke="#5b4636" stroke-width="8" stroke-linecap="round"/><circle cx="98" cy="-58" r="11" fill="#5b4636"/>
+      <rect x="-54" y="-54" width="30" height="54" rx="12" fill="#f3ead9"/><rect x="24" y="-54" width="30" height="54" rx="12" fill="#f3ead9"/>
+      <rect x="-54" y="-16" width="30" height="16" rx="7" fill="#5b4636"/><rect x="24" y="-16" width="30" height="16" rx="7" fill="#5b4636"/>
+      <ellipse cx="0" cy="-86" rx="80" ry="62" fill="url(#gBranco)"/>
+      <ellipse cx="0" cy="-54" rx="58" ry="26" fill="#f3ead9"/>
+      <ellipse cx="-46" cy="-92" rx="24" ry="19" fill="#5b4636"/><ellipse cx="50" cy="-66" rx="19" ry="15" fill="#5b4636"/>
+      <ellipse cx="0" cy="-32" rx="22" ry="11" fill="#f9b8c4"/>
+      <path d="M-38 -222 q-16 -22 -4 -36 q10 14 20 28 Z" fill="#f2d58a"/><path d="M38 -222 q16 -22 4 -36 q-10 14 -20 28 Z" fill="#f2d58a"/>
+      <ellipse cx="-68" cy="-196" rx="27" ry="15" fill="url(#gBranco)" transform="rotate(-18 -68 -196)"/><ellipse cx="-70" cy="-196" rx="15" ry="8" fill="#f9b8c4" transform="rotate(-18 -70 -196)"/>
+      <ellipse cx="68" cy="-196" rx="27" ry="15" fill="#5b4636" transform="rotate(18 68 -196)"/><ellipse cx="70" cy="-196" rx="15" ry="8" fill="#f9b8c4" transform="rotate(18 70 -196)"/>
+      <ellipse cx="0" cy="-178" rx="64" ry="54" fill="url(#gBranco)"/>
+      <ellipse cx="32" cy="-208" rx="23" ry="15" fill="#5b4636"/>
+      <path d="M-40 -128 Q0 -108 40 -128 L36 -116 Q0 -96 -36 -116 Z" fill="url(#gTelhado)"/><circle cx="0" cy="-104" r="12" fill="#ffc93c"/><circle cx="0" cy="-100" r="3.5" fill="#b9830f"/>
+      <ellipse cx="0" cy="-152" rx="45" ry="29" fill="#f9b8c4"/>
+      <ellipse cx="-15" cy="-155" rx="5.5" ry="7.5" fill="#d9788e"/><ellipse cx="15" cy="-155" rx="5.5" ry="7.5" fill="#d9788e"/>
+      <path d="M-14 -138 q14 9 28 0" fill="none" stroke="#d9788e" stroke-width="4" stroke-linecap="round"/>
+      <g class="olho"><ellipse cx="-25" cy="-192" rx="9" ry="11" fill="#3b2a20"/><circle cx="-22" cy="-196" r="3.5" fill="#fff"/></g>
+      <g class="olho"><ellipse cx="25" cy="-190" rx="9" ry="11" fill="#3b2a20"/><circle cx="28" cy="-194" r="3.5" fill="#fff"/></g>
+      <text class="zzz" x="70" y="-240">Zzz</text>
+    </g></g>
+  </g>
+
+  <!-- GALINHA -->
+  <g class="bicho" data-bicho="galinha" transform="translate(400,842)">
+    <ellipse cx="0" cy="0" rx="56" ry="10" fill="rgba(0,0,0,.14)"/>
+    <g class="vivo" style="animation-delay:-1s"><g class="corpo">
+      <g stroke="#f08a1c" stroke-width="7" stroke-linecap="round" fill="none"><path d="M-14 -22 V-3 M-26 -1 H-4"/><path d="M14 -22 V-3 M4 -1 H26"/></g>
+      <ellipse cx="-52" cy="-60" rx="13" ry="24" fill="#efe3cf" transform="rotate(14 -52 -60)"/><ellipse cx="52" cy="-60" rx="13" ry="24" fill="#efe3cf" transform="rotate(-14 52 -60)"/>
+      <circle cx="-13" cy="-134" r="12" fill="#ef4b4b"/><circle cx="13" cy="-134" r="12" fill="#ef4b4b"/><circle cx="0" cy="-143" r="13" fill="#ef4b4b"/>
+      <ellipse cx="0" cy="-74" rx="54" ry="62" fill="url(#gBranco)"/>
+      <ellipse cx="0" cy="-44" rx="36" ry="24" fill="#f3ead9"/>
+      <ellipse cx="0" cy="-64" rx="7" ry="10" fill="#ef4b4b"/>
+      <path d="M-13 -80 L0 -68 L13 -80 L0 -88 Z" fill="#ffb21c"/>
+      <circle cx="-33" cy="-78" r="9" fill="#ffb3c1" opacity=".7"/><circle cx="33" cy="-78" r="9" fill="#ffb3c1" opacity=".7"/>
+      <g class="olho"><ellipse cx="-19" cy="-96" rx="8" ry="10" fill="#3b2a20"/><circle cx="-16" cy="-100" r="3" fill="#fff"/></g>
+      <g class="olho"><ellipse cx="19" cy="-96" rx="8" ry="10" fill="#3b2a20"/><circle cx="22" cy="-100" r="3" fill="#fff"/></g>
+      <text class="zzz" x="40" y="-150">Zzz</text>
+    </g></g>
+  </g>
+
+  <!-- PORCO -->
+  <g class="bicho" data-bicho="porco" transform="translate(690,850)">
+    <g class="vivo" style="animation-delay:-1.5s"><g class="corpo">
+      <path d="M66 -70 q22 -4 18 -20 q-6 -12 -16 -2 q-4 10 10 12" fill="none" stroke="#ef8fa6" stroke-width="7" stroke-linecap="round"/>
+      <rect x="-46" y="-26" width="28" height="26" rx="10" fill="#ef8fa6"/><rect x="18" y="-26" width="28" height="26" rx="10" fill="#ef8fa6"/>
+      <path d="M-56 -122 L-60 -150 L-32 -140 Z" fill="#ef8fa6" stroke="#ef8fa6" stroke-width="16" stroke-linejoin="round"/>
+      <path d="M56 -122 L60 -150 L32 -140 Z" fill="#ef8fa6" stroke="#ef8fa6" stroke-width="16" stroke-linejoin="round"/>
+      <ellipse cx="0" cy="-78" rx="76" ry="68" fill="url(#gPorco)"/>
+      <ellipse cx="38" cy="-34" rx="20" ry="10" fill="#a87848" opacity=".6"/><circle cx="-50" cy="-44" r="7" fill="#a87848" opacity=".6"/>
+      <ellipse cx="0" cy="-74" rx="30" ry="21" fill="#ef8fa6"/>
+      <ellipse cx="-10" cy="-74" rx="5" ry="7" fill="#c9607a"/><ellipse cx="10" cy="-74" rx="5" ry="7" fill="#c9607a"/>
+      <path d="M-12 -46 q12 9 24 0" fill="none" stroke="#c9607a" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="-48" cy="-80" r="10" fill="#ff8fa8" opacity=".6"/><circle cx="48" cy="-80" r="10" fill="#ff8fa8" opacity=".6"/>
+      <g class="olho"><ellipse cx="-28" cy="-106" rx="9" ry="11" fill="#3b2a20"/><circle cx="-25" cy="-110" r="3.5" fill="#fff"/></g>
+      <g class="olho"><ellipse cx="28" cy="-106" rx="9" ry="11" fill="#3b2a20"/><circle cx="31" cy="-110" r="3.5" fill="#fff"/></g>
+      <text class="zzz" x="50" y="-170">Zzz</text>
+    </g></g>
+  </g>
+
+  <!-- CACHORRO CARAMELO -->
+  <g class="bicho" data-bicho="cachorro" transform="translate(990,852)">
+    <ellipse cx="0" cy="0" rx="64" ry="11" fill="rgba(0,0,0,.14)"/>
+    <g class="vivo" style="animation-delay:-2s"><g class="corpo">
+      <g class="abana"><path d="M40 -26 q44 -6 38 -56" fill="none" stroke="#e3a050" stroke-width="15" stroke-linecap="round"/></g>
+      <ellipse cx="0" cy="-54" rx="50" ry="54" fill="url(#gCao)"/>
+      <ellipse cx="0" cy="-44" rx="27" ry="36" fill="#f7dcb0"/>
+      <ellipse cx="-22" cy="-7" rx="18" ry="11" fill="#f7dcb0"/><ellipse cx="22" cy="-7" rx="18" ry="11" fill="#f7dcb0"/>
+      <ellipse cx="-54" cy="-126" rx="19" ry="36" fill="#b56d2e" transform="rotate(14 -54 -126)"/><ellipse cx="54" cy="-126" rx="19" ry="36" fill="#b56d2e" transform="rotate(-14 54 -126)"/>
+      <ellipse cx="0" cy="-132" rx="54" ry="47" fill="url(#gCao)"/>
+      <ellipse cx="0" cy="-112" rx="30" ry="22" fill="#f7dcb0"/>
+      <path d="M-8 -104 q8 20 16 0 Z" fill="#ff7a8a"/>
+      <path d="M-14 -106 q7 7 14 0 q7 7 14 0" fill="none" stroke="#3b2a20" stroke-width="4" stroke-linecap="round"/>
+      <ellipse cx="0" cy="-121" rx="11" ry="8" fill="#3b2a20"/>
+      <circle cx="-40" cy="-120" r="9" fill="#ff8f6b" opacity=".45"/><circle cx="40" cy="-120" r="9" fill="#ff8f6b" opacity=".45"/>
+      <g class="olho"><ellipse cx="-22" cy="-144" rx="9" ry="11" fill="#3b2a20"/><circle cx="-19" cy="-148" r="3.5" fill="#fff"/></g>
+      <g class="olho"><ellipse cx="22" cy="-144" rx="9" ry="11" fill="#3b2a20"/><circle cx="25" cy="-148" r="3.5" fill="#fff"/></g>
+      <text class="zzz" x="50" y="-190">Zzz</text>
+    </g></g>
+  </g>
+
+  <!-- PATO -->
+  <g class="bicho" data-bicho="pato" transform="translate(1260,738)">
+    <ellipse cx="0" cy="-4" rx="78" ry="14" fill="none" stroke="#fff" stroke-width="5" opacity=".7"/>
+    <g class="boia"><g class="corpo">
+      <path d="M-50 -36 q-26 -22 -12 -34 q14 8 26 20 Z" fill="#f7c22e"/>
+      <ellipse cx="0" cy="-32" rx="60" ry="34" fill="url(#gPato)"/>
+      <ellipse cx="-12" cy="-30" rx="27" ry="16" fill="#f7c22e"/>
+      <circle cx="26" cy="-80" r="35" fill="url(#gPato)"/>
+      <ellipse cx="58" cy="-72" rx="21" ry="10" fill="#ff8c1a"/>
+      <circle cx="20" cy="-66" r="8" fill="#ff9f6b" opacity=".6"/>
+      <g class="olho"><ellipse cx="34" cy="-88" rx="8" ry="10" fill="#3b2a20"/><circle cx="37" cy="-92" r="3" fill="#fff"/></g>
+      <text class="zzz" x="50" y="-125">Zzz</text>
+    </g></g>
+  </g>
+
+
+  <!-- luz do sol, borboletas e vaga-lumes -->
+  <circle class="luz-sol" cx="1380" cy="150" r="760" fill="url(#gLuz)" pointer-events="none"/>
+  <g class="voa v1" pointer-events="none"><g class="asas"><ellipse cx="-11" cy="-6" rx="12" ry="15" fill="#ff8c1a"/><ellipse cx="11" cy="-6" rx="12" ry="15" fill="#ff8c1a"/><ellipse cx="-8" cy="9" rx="8" ry="9" fill="#ffb04d"/><ellipse cx="8" cy="9" rx="8" ry="9" fill="#ffb04d"/></g><rect x="-2" y="-12" width="4" height="26" rx="2" fill="#5a3a1a"/></g>
+  <g class="voa v2" pointer-events="none"><g class="asas"><ellipse cx="-10" cy="-5" rx="11" ry="13" fill="#7fb4ff"/><ellipse cx="10" cy="-5" rx="11" ry="13" fill="#7fb4ff"/><ellipse cx="-7" cy="8" rx="7" ry="8" fill="#b6d6ff"/><ellipse cx="7" cy="8" rx="7" ry="8" fill="#b6d6ff"/></g><rect x="-2" y="-10" width="4" height="22" rx="2" fill="#3b4a6a"/></g>
+  <g class="vagalumes" fill="#fff59a" pointer-events="none"><circle cx="300" cy="600" r="6"/><circle cx="640" cy="520" r="5"/><circle cx="930" cy="700" r="6"/><circle cx="1200" cy="560" r="5"/><circle cx="1450" cy="640" r="6"/><circle cx="480" cy="760" r="5"/><circle cx="780" cy="420" r="5"/><circle cx="1090" cy="460" r="6"/></g>
+  <rect class="escurece" x="-200" y="-100" width="2000" height="1100" fill="#0a1040"/>
+</svg>
+
+<script>
+(() => {
+  const svg = document.getElementById('cena');
+  const flores = document.getElementById('flores');
+  const ovosG = document.getElementById('ovos');
+  let ctx = null, vozPt = null, noite = false, ovos = 0;
+
+  // ---------- voz ----------
+  function escolheVoz() {
+    try {
+      const vs = speechSynthesis.getVoices();
+      const nota = v => {
+        const l = (v.lang || '').replace('_', '-').toLowerCase();
+        if (!l.startsWith('pt')) return -1;
+        let n = l === 'pt-br' ? 10 : 0;
+        if (/natural|neural|online/i.test(v.name)) n += 8;
+        if (/google/i.test(v.name)) n += 6;
+        if (/luciana|francisca|fernanda|thalita|leticia/i.test(v.name)) n += 5;
+        if (/enhanced|premium|aprimorad/i.test(v.name)) n += 4;
+        return n;
+      };
+      vozPt = vs.map(v => [nota(v), v]).filter(p => p[0] >= 0).sort((a, b) => b[0] - a[0])[0]?.[1] || null;
+    } catch(e) {}
+  }
+  try { escolheVoz(); speechSynthesis.onvoiceschanged = escolheVoz; } catch(e) {}
+  function fala(txt, atraso=0) {
+    setTimeout(() => {
+      try {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(txt);
+        u.lang = 'pt-BR'; if (vozPt) u.voice = vozPt;
+        u.rate = 0.9; u.pitch = 1.08;
+        speechSynthesis.speak(u);
+      } catch(e) {}
+    }, atraso);
+  }
+
+  // ---------- sons sintetizados ----------
+  function tom(f1, f2, dur, tipo='sine', vol=.25, delay=0, filtro=null) {
+    if (!ctx) return;
+    const t = ctx.currentTime + delay;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = tipo; o.frequency.setValueAtTime(f1, t);
+    o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    let no = o;
+    if (filtro) { const f = ctx.createBiquadFilter(); f.type = filtro.tipo; f.frequency.value = filtro.f; f.Q.value = filtro.q || 1; o.connect(f); no = f; }
+    no.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + dur + .05);
+  }
+  const sons = {
+    vaca:     () => { tom(170,115,1.1,'sawtooth',.22,0,{tipo:'lowpass',f:700}); return 1100; },
+    jumento:  () => { [0,.28,.56,.84].forEach((d,i)=>tom(i%2?280:560, i%2?240:500, .26,'square',.12,d,{tipo:'lowpass',f:1500})); return 1150; },
+    porco:    () => { [0,.18,.36].forEach(d=>tom(230,130,.14,'sawtooth',.2,d,{tipo:'bandpass',f:600,q:2})); return 600; },
+    galinha:  () => { [0,.1,.2].forEach(d=>tom(900,1150,.08,'triangle',.2,d)); tom(700,1200,.35,'triangle',.2,.32); return 750; },
+    cachorro: () => { [0,.22].forEach(d=>tom(520,240,.13,'square',.16,d,{tipo:'lowpass',f:1400})); return 500; },
+    pato:     () => { [0,.2,.4].forEach(d=>tom(400,300,.16,'sawtooth',.22,d,{tipo:'bandpass',f:1200,q:5})); return 650; },
+  };
+  function plim(f=880) { tom(f, f*1.5, .18, 'sine', .2); tom(f*1.5, f*2, .2, 'sine', .15, .1); }
+  function musiquinha() { [523,659,784,1047].forEach((f,i)=>tom(f,f,.18,'triangle',.18,i*.13)); }
+
+  const frases = {
+    vaca: ['Muuu! Eu sou a vaca!', 'A vaca faz muuu!', 'A vaca dá leite!'],
+    jumento: ['Ió, ió! Eu sou o jumento!', 'O jumento faz ió!', 'O jumento é forte e trabalhador!'],
+    porco: ['Óinc, óinc! Eu sou o porquinho!', 'O porco faz óinc!', 'O porquinho adora lama!'],
+    galinha: [],
+    cachorro: ['Au, au! Eu sou o cachorro caramelo!', 'O cachorro faz au au!', 'Au au! Vamos brincar?'],
+    pato: ['Quá, quá! Eu sou o pato!', 'O pato nada no açude!', 'Quá, quá, quá!'],
+  };
+  const idx = {};
+  const proxFrase = b => { const l = frases[b]; idx[b] = ((idx[b] ?? -1) + 1) % l.length; return l[idx[b]]; };
+
+  // ---------- partículas ----------
+  function particulas(x, y, cores=['#ff5c8a','#ffcf33','#5cc6ff','#7ed957'], simb=['♥','★','♪']) {
+    for (let i = 0; i < 6; i++) {
+      const p = document.createElement('div');
+      p.className = 'particula';
+      p.textContent = simb[i % simb.length];
+      p.style.color = cores[i % cores.length];
+      p.style.left = x + 'px'; p.style.top = y + 'px';
+      p.style.setProperty('--dx', (Math.random()*200-100) + 'px');
+      p.style.animationDelay = (i*0.06) + 's';
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 1600);
+    }
+  }
+  function svgPt(ev) {
+    const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+  // ---------- bichos ----------
+  const ocupado = new WeakSet();
+  document.querySelectorAll('.bicho').forEach(b => {
+    b.addEventListener('pointerdown', ev => {
+      ev.stopPropagation();
+      const nome = b.dataset.bicho;
+      const corpo = b.querySelector('.corpo');
+      corpo.classList.remove('pula'); void corpo.getBBox(); corpo.classList.add('pula');
+      setTimeout(() => corpo.classList.remove('pula'), 750);
+      particulas(ev.clientX, ev.clientY);
+      if (ocupado.has(b)) return;
+      ocupado.add(b); setTimeout(() => ocupado.delete(b), 500);
+      const dur = sons[nome]();
+      if (nome === 'galinha') { botaOvo(dur); return; }
+      if (noite && Math.random() < .5) { fala('Ué! Acordei! ' + proxFrase(nome), dur); return; }
+      fala(proxFrase(nome), dur);
+    });
+  });
+
+  // ---------- galinha: contar ovos ----------
+  const numeros = ['Um ovo!', 'Dois ovos!', 'Três ovos!', 'Quatro ovos!', 'Cinco ovos! Muito bem!'];
+  function botaOvo(dur) {
+    if (ovos >= 5) {
+      ovosG.innerHTML = ''; ovos = 0;
+      fala('Có, có, có! Vamos contar de novo?', dur);
+      return;
+    }
+    const x = 120 + ovos * 46;
+    const g = el('g', { transform: `translate(${x},868)` });
+    const ovo = el('ellipse', { class: 'ovo', cx: 0, cy: 0, rx: 18, ry: 24, fill: '#fffaf0', stroke: '#e6d2ae', 'stroke-width': 3 });
+    g.appendChild(ovo); ovosG.appendChild(g);
+    fala(numeros[ovos], dur);
+    ovos++;
+  }
+
+  // ---------- flores com nome das cores ----------
+  const cores = [
+    ['#e8343a','Flor vermelha!'], ['#ffcf33','Flor amarela!'], ['#3a7bff','Flor azul!'],
+    ['#ff7ab6','Flor rosa!'], ['#9b5de5','Flor roxa!'], ['#ff8c1a','Flor laranja!'], ['#ffffff','Flor branca!']
+  ];
+  let ultimaCor = -1;
+  function plantaFlor(x, y, falar=true) {
+    let i; do { i = Math.floor(Math.random()*cores.length); } while (i === ultimaCor);
+    ultimaCor = i;
+    const [cor, nome] = cores[i];
+    const g = el('g', { transform: `translate(${x},${y})` });
+    const f = el('g', { class: 'flor' });
+    f.appendChild(el('path', { d: 'M0 0 V-45', stroke: '#2f8a3a', 'stroke-width': 6, 'stroke-linecap': 'round' }));
+    f.appendChild(el('ellipse', { cx: -12, cy: -20, rx: 12, ry: 6, fill: '#2f8a3a', transform: 'rotate(-30 -12 -20)' }));
+    for (let k = 0; k < 6; k++) {
+      const a = k * 60;
+      f.appendChild(el('ellipse', { cx: 0, cy: -63, rx: 10, ry: 17, fill: cor, transform: `rotate(${a} 0 -50)` }));
+    }
+    f.appendChild(el('circle', { cx: 0, cy: -50, r: 10, fill: '#ffb21c', stroke: '#f08a1c', 'stroke-width': 3 }));
+    g.appendChild(f); flores.appendChild(g);
+    while (flores.children.length > 30) flores.firstChild.remove();
+    plim(660 + i * 60);
+    if (falar) fala(nome, 150);
+  }
+  svg.addEventListener('pointerdown', ev => {
+    const p = svgPt(ev);
+    if (p.y > 575 && ev.target.closest('.bicho') === null) {
+      plantaFlor(p.x, p.y + 20);
+      particulas(ev.clientX, ev.clientY, ['#ffcf33','#7ed957'], ['✿','★']);
+    }
+  });
+
+  // ---------- sol / lua ----------
+  document.getElementById('sol').addEventListener('pointerdown', ev => {
+    ev.stopPropagation();
+    noite = !noite;
+    document.body.classList.toggle('noite', noite);
+    if (noite) { [784,659,523,392].forEach((f,i)=>tom(f,f,.3,'sine',.15,i*.25)); fala('Boa noite! Hora de dormir. Shhh...', 300); }
+    else { musiquinha(); fala('Bom dia! O sol chegou!', 500); }
+  });
+
+  // ---------- nuvens: chuva ----------
+  document.querySelectorAll('.nuvem').forEach(n => {
+    n.addEventListener('pointerdown', ev => {
+      ev.stopPropagation();
+      const r = n.getBoundingClientRect();
+      for (let i = 0; i < 40; i++) {
+        const d = document.createElement('div');
+        d.className = 'gota';
+        d.style.left = (r.left + Math.random() * r.width) + 'px';
+        d.style.top = (r.bottom - 10) + 'px';
+        d.style.animationDelay = (Math.random() * 1.4) + 's';
+        document.body.appendChild(d);
+        setTimeout(() => d.remove(), 2600);
+      }
+      for (let i = 0; i < 10; i++) tom(1200 + Math.random()*800, 600, .08, 'sine', .08, Math.random()*1.5);
+      fala('Olha a chuva! Plic, ploc!', 200);
+      setTimeout(() => {
+        const cx = svgPt({ clientX: r.left + r.width/2, clientY: 0 }).x;
+        [-60, 0, 60].forEach((dx, k) => setTimeout(() => plantaFlor(cx + dx, 640 + Math.random()*40, false), k*200));
+      }, 2000);
+    });
+  });
+
+  // ================= MODO APRENDER =================
+  const $ = id => document.getElementById(id);
+  const apr = $('aprender'), opcoesEl = $('opcoes'), dicaEl = $('dica'), estrelasEl = $('estrelas-jogo'), menuEl = $('menu-jogos');
+  const rnd = n => Math.floor(Math.random() * n);
+  const mistura = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const essa = art => (art.startsWith('a ') ? 'Essa é ' : 'Esse é ') + art + '.';
+
+  // ----- desenhos dos cartões -----
+  const VB = { vaca:'-112 -262 224 266', jumento:'-106 -316 200 320', galinha:'-72 -160 144 164',
+               porco:'-92 -176 190 180', cachorro:'-82 -186 172 190', pato:'-78 -122 164 124' };
+  const ARTIGO = { vaca:'a vaca', jumento:'o jumento', galinha:'a galinha', porco:'o porco', cachorro:'o cachorro', pato:'o pato' };
+  function svgBicho(n) {
+    const s = el('svg', { viewBox: VB[n] });
+    const c = document.querySelector(`[data-bicho=${n}] .corpo`).cloneNode(true);
+    c.classList.remove('pula'); c.querySelector('.zzz')?.remove();
+    s.appendChild(c); return s;
+  }
+  function svgFlor(cor) {
+    const s = el('svg', { viewBox: '-45 -92 90 96' }), f = el('g', { class: 'corpo' });
+    f.appendChild(el('path', { d: 'M0 0 V-45', stroke: '#2f8a3a', 'stroke-width': 6, 'stroke-linecap': 'round' }));
+    f.appendChild(el('ellipse', { cx: -12, cy: -20, rx: 12, ry: 6, fill: '#2f8a3a', transform: 'rotate(-30 -12 -20)' }));
+    for (let k = 0; k < 6; k++)
+      f.appendChild(el('ellipse', { cx: 0, cy: -68, rx: 12, ry: 20, fill: cor, transform: `rotate(${k * 60} 0 -52)` }));
+    f.appendChild(el('circle', { cx: 0, cy: -52, r: 11, fill: '#ffb21c', stroke: '#f08a1c', 'stroke-width': 3 }));
+    s.appendChild(f); return s;
+  }
+  function svgForma(tipo, cor) {
+    const s = el('svg', { viewBox: '0 0 100 100' }), g = el('g', { class: 'corpo' });
+    const a = { fill: cor, stroke: cor, 'stroke-width': 6, 'stroke-linejoin': 'round' };
+    let f;
+    if (tipo === 'circulo') f = el('circle', { cx: 50, cy: 50, r: 40, ...a });
+    else if (tipo === 'quadrado') f = el('rect', { x: 12, y: 12, width: 76, height: 76, rx: 6, ...a });
+    else if (tipo === 'triangulo') f = el('path', { d: 'M50 10 L92 88 L8 88 Z', ...a });
+    else if (tipo === 'coracao') f = el('path', { d: 'M50 88 C10 58 8 30 28 20 C40 14 50 24 50 32 C50 24 60 14 72 20 C92 30 90 58 50 88 Z', ...a });
+    else { // estrela
+      let d = '';
+      for (let i = 0; i < 10; i++) { const r = i % 2 ? 19 : 44, t = -Math.PI / 2 + i * Math.PI / 5;
+        d += (i ? 'L' : 'M') + (50 + r * Math.cos(t)).toFixed(1) + ' ' + (52 + r * Math.sin(t)).toFixed(1) + ' '; }
+      f = el('path', { d: d + 'Z', ...a });
+    }
+    g.appendChild(f); s.appendChild(g); return s;
+  }
+  function svgNinho(n) {
+    const s = el('svg', { viewBox: '0 30 200 125' }), g = el('g', { class: 'corpo' });
+    g.appendChild(el('ellipse', { cx: 100, cy: 118, rx: 92, ry: 26, fill: '#b5793d' }));
+    const linhas = n > 5 ? [n - 5, 5] : [n];
+    linhas.forEach((q, li) => {
+      const y = 96 - (linhas.length - 1 - li) * 34;
+      for (let i = 0; i < q; i++)
+        g.appendChild(el('ellipse', { cx: 100 + (i - (q - 1) / 2) * 34, cy: y, rx: 14, ry: 19, fill: '#fffaf0', stroke: '#e6d2ae', 'stroke-width': 3 }));
+    });
+    g.appendChild(el('path', { d: 'M8 118 Q100 172 192 118 Q100 148 8 118 Z', fill: '#9a6230' }));
+    s.appendChild(g); return s;
+  }
+  function svgBolha(cor) { const s = el('svg', { viewBox: '0 0 100 100' }); s.appendChild(el('circle', { cx: 50, cy: 50, r: 42, fill: cor })); return s; }
+  function svgNumero(n) {
+    const s = el('svg', { viewBox: '0 0 100 100' });
+    const t = el('text', { x: 50, y: 82, 'text-anchor': 'middle', 'font-size': 92, 'font-weight': 800, fill: '#3a7bff' });
+    t.textContent = n; s.appendChild(t); return s;
+  }
+
+  function svgLetra(ch, cor) {
+    const s = el('svg', { viewBox: '0 0 100 100' }), g = el('g', { class: 'corpo' });
+    const t = el('text', { x: 50, y: 82, 'text-anchor': 'middle', 'font-size': 92, 'font-weight': 800, fill: cor });
+    t.textContent = ch; g.appendChild(t); s.appendChild(g); return s;
+  }
+  function svgPontos(n) {
+    const s = el('svg', { viewBox: '0 0 100 100' });
+    for (let i = 0; i < n; i++) {
+      const lin = Math.floor(i / 3), naLinha = Math.min(3, n - lin * 3), linhas = Math.ceil(n / 3);
+      s.appendChild(el('circle', { cx: 50 + ((i % 3) - (naLinha - 1) / 2) * 30, cy: 50 + (lin - (linhas - 1) / 2) * 30, r: 11, fill: '#3a7bff' }));
+    }
+    return s;
+  }
+
+  // ----- definição dos jogos -----
+  const CORES_J = [['#e8343a','vermelha'],['#ffcf33','amarela'],['#3a7bff','azul'],['#35b34a','verde'],['#ff7ab6','rosa'],['#9b5de5','roxa'],['#ff8c1a','laranja']];
+  const FORMAS_J = [['circulo','no círculo','o círculo'],['quadrado','no quadrado','o quadrado'],['triangulo','no triângulo','o triângulo'],['estrela','na estrela','a estrela'],['coracao','no coração','o coração']];
+  const EXT = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+  const ovosTxt = n => `${EXT[n]} ${n === 1 ? 'ovo' : 'ovos'}`;
+  const JOGOS = {
+    cores(nv, k) {
+      const ops = mistura(CORES_J.slice(0, 3 + Math.min(nv, 2) * 2)).slice(0, k), alvo = ops[rnd(k)];
+      return { pergunta: `Toque na flor ${alvo[1]}!`, certoTxt: `Flor ${alvo[1]}!`, dica: nv < 2 ? svgBolha(alvo[0]) : null,
+        opcoes: ops.map(o => ({ svg: svgFlor(o[0]), certo: o === alvo, erro: `Essa é a flor ${o[1]}.` })) };
+    },
+    formas(nv, k) {
+      const ops = mistura(FORMAS_J.slice(0, 3 + Math.min(nv, 2))).slice(0, k), alvo = ops[rnd(k)];
+      const cs = mistura(CORES_J);
+      return { pergunta: `Toque ${alvo[1]}!`, certoTxt: essa(alvo[2]), dica: nv < 2 ? svgForma(alvo[0], '#c3ced6') : null,
+        opcoes: ops.map((o, i) => ({ svg: svgForma(o[0], cs[i][0]), certo: o === alvo, erro: essa(o[2]) })) };
+    },
+    bichos(nv, k) {
+      const ops = mistura(Object.keys(ARTIGO)).slice(0, k), alvo = ops[rnd(k)];
+      return { pergunta: 'Quem faz esse som?', antes: () => sons[alvo](), certoTxt: essa(ARTIGO[alvo]), dica: null,
+        opcoes: ops.map(o => ({ svg: svgBicho(o), certo: o === alvo, erro: essa(ARTIGO[o]) })) };
+    },
+    contar(nv, k) {
+      const max = [3, 5, 7, 9][nv];
+      const ops = mistura(Array.from({ length: max }, (_, i) => i + 1)).slice(0, k), alvo = ops[rnd(k)];
+      return { pergunta: `Onde tem ${ovosTxt(alvo)}?`, certoTxt: `${ovosTxt(alvo)}!`, dica: svgNumero(alvo),
+        opcoes: ops.map(o => ({ svg: svgNinho(o), certo: o === alvo, erro: `Aqui tem ${ovosTxt(o)}.` })) };
+    },
+  };
+  const VOGAIS = { A: ['abelha', '🐝'], E: ['elefante', '🐘'], I: ['ilha', '🏝️'], O: ['ovo', '🥚'], U: ['uva', '🍇'] };
+  const NUMN = ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+  const VIVAS = ['#ef4b4b', '#2f9bd6', '#4fae4a', '#ff8c1a', '#9b5de5'];
+  JOGOS.letras = (nv, k) => {
+    const ops = mistura(Object.keys(VOGAIS)).slice(0, k), alvo = ops[rnd(k)], cs = mistura(VIVAS);
+    const f = c => nv >= 3 ? c.toLowerCase() : c;
+    return { pergunta: `Toque na letra ${alvo}!`, certoTxt: `${alvo}, de ${VOGAIS[alvo][0]}!`, dica: nv < 2 ? svgLetra(alvo, '#b9c4cc') : null,
+      opcoes: ops.map((o, i) => ({ svg: svgLetra(f(o), cs[i]), certo: o === alvo, erro: `Essa é a letra ${o}.` })) };
+  };
+  JOGOS.numeros = (nv, k) => {
+    const max = [3, 5, 7, 9][nv];
+    const ops = mistura(Array.from({ length: max }, (_, i) => i + 1)).slice(0, k), alvo = ops[rnd(k)], cs = mistura(VIVAS);
+    return { pergunta: `Toque no número ${NUMN[alvo]}!`, certoTxt: `Número ${NUMN[alvo]}!`, dica: nv < 2 ? svgPontos(alvo) : null,
+      opcoes: ops.map((o, i) => ({ svg: svgLetra(String(o), cs[i]), certo: o === alvo, erro: `Esse é o número ${NUMN[o]}.` })) };
+  };
+
+  // ----- contornar letras e números -----
+  const TRACOS = {
+    A: ['M50 12 L18 108', 'M50 12 L82 108', 'M30 74 H70'],
+    E: ['M28 12 V108', 'M28 12 H76', 'M28 60 H68', 'M28 108 H76'],
+    I: ['M50 12 V108', 'M32 12 H68', 'M32 108 H68'],
+    O: ['M50 12 C22 12 14 36 14 60 C14 84 22 108 50 108 C78 108 86 84 86 60 C86 36 78 12 50 12'],
+    U: ['M22 12 V70 C22 96 34 108 50 108 C66 108 78 96 78 70 V12'],
+    0: ['M50 12 C28 12 22 36 22 60 C22 84 28 108 50 108 C72 108 78 84 78 60 C78 36 72 12 50 12'],
+    1: ['M32 32 L54 12 V108'],
+    2: ['M24 34 C24 6 76 6 76 34 C76 54 40 78 24 108 H78'],
+    3: ['M26 24 C40 6 76 10 74 34 C73 50 56 58 44 58 C60 58 78 66 78 84 C78 110 38 114 24 96'],
+    4: ['M62 12 L20 78 H84', 'M64 12 V108'],
+    5: ['M32 12 L28 56 C42 46 78 50 78 80 C78 110 38 114 24 96', 'M32 12 H72'],
+    6: ['M68 14 C40 20 22 50 22 80 C22 100 36 108 50 108 C66 108 78 98 78 82 C78 66 66 58 50 58 C36 58 24 68 22 80'],
+    7: ['M22 12 H78 L40 108'],
+    8: ['M50 58 C30 50 26 12 50 12 C74 12 70 50 50 58 C26 68 22 108 50 108 C78 108 74 68 50 58'],
+    9: ['M78 40 C78 22 66 12 50 12 C34 12 22 24 22 40 C22 56 34 64 50 64 C66 64 78 54 78 40 V70 C78 96 62 108 34 106'],
+  };
+  const glifo = $('glifo'), premio = $('premio');
+  function svgPontilhado(ch) {
+    const s = el('svg', { viewBox: '0 0 100 120' }), g = el('g', { class: 'corpo' });
+    TRACOS[ch].forEach(d => g.appendChild(el('path', { d, class: 't-base' })));
+    TRACOS[ch].forEach(d => g.appendChild(el('path', { d, class: 't-mini' })));
+    s.appendChild(g); return s;
+  }
+  let listaTraco = [];
+  function iniciaTraco(tipo) {
+    jogo = tipo; acertos = 0; apr.classList.remove('menu'); apr.classList.add('tracando'); desenhaEstrelas();
+    listaTraco = tipo === 'tracaLetras' ? ['A', 'E', 'I', 'O', 'U']
+      : ((niveis.tracaNum || 0) % 2 ? ['6', '7', '8', '9', '0'] : ['1', '2', '3', '4', '5']);
+    plim(); proximoGlifo(0);
+  }
+  function proximoGlifo(idx) {
+    const meu = ++seq, ch = listaTraco[idx], ehLetra = isNaN(ch), cor = VIVAS[idx % VIVAS.length], PASSO = 3;
+    glifo.innerHTML = ''; premio.innerHTML = ''; premio.classList.remove('salta');
+    if (ehLetra) premio.textContent = VOGAIS[ch][1]; else premio.appendChild(svgNinho(+ch));
+    const ts = TRACOS[ch].map(d => ({ d, feito: el('path', { d, class: 't-feito', stroke: cor }) }));
+    ts.forEach(t => glifo.appendChild(el('path', { d: t.d, class: 't-base' })));
+    ts.forEach(t => {
+      glifo.appendChild(t.feito);
+      t.len = t.feito.getTotalLength(); t.pts = [];
+      for (let l = 0; l <= t.len; l += PASSO) t.pts.push(t.feito.getPointAtLength(l));
+      t.pts.push(t.feito.getPointAtLength(t.len));
+      t.feito.setAttribute('stroke-dasharray', `0 ${t.len + 30}`); t.feito.style.visibility = 'hidden';
+    });
+    const guia = el('path', { class: 't-guia' }), ponto = el('circle', { class: 't-ponto', r: 6 });
+    glifo.appendChild(guia); glifo.appendChild(ponto);
+    let si = 0, pi = 0, fim = false;
+    const mostra = () => { const t = ts[si]; guia.setAttribute('d', t.d); const q = t.pts[Math.min(pi, t.pts.length - 1)]; ponto.setAttribute('cx', q.x); ponto.setAttribute('cy', q.y); };
+    mostra();
+    const nome = ehLetra ? `Letra ${ch}.` : `Número ${NUMN[+ch]}.`;
+    repetePergunta = () => fala(`${nome} Passe o dedo por cima!`);
+    fala(idx === 0 ? `${nome} Passe o dedo por cima, seguindo a bolinha!` : nome);
+    const mover = ev => {
+      if (fim || seq !== meu) return;
+      if (ev.pointerType === 'mouse' && !ev.buttons) return;
+      const m = glifo.createSVGPoint(); m.x = ev.clientX; m.y = ev.clientY;
+      const p = m.matrixTransform(glifo.getScreenCTM().inverse());
+      let mudou = false;
+      while (!fim) {
+        const t = ts[si]; let achou = -1;
+        for (let k = pi; k < Math.min(pi + 5, t.pts.length); k++) if (Math.hypot(t.pts[k].x - p.x, t.pts[k].y - p.y) < 13) achou = k;
+        if (achou < 0) break;
+        pi = achou + 1; mudou = true;
+        t.feito.style.visibility = 'visible';
+        if (pi >= t.pts.length) {
+          t.feito.removeAttribute('stroke-dasharray');
+          si++; pi = 0; plim(620 + si * 110);
+          if (si >= ts.length) fim = true;
+          break;
+        } else {
+          t.feito.setAttribute('stroke-dasharray', `${Math.min(pi * PASSO, t.len)} ${t.len + 30}`);
+          if (pi % 5 === 0) tom(880 + pi * 6, 880 + pi * 6, .05, 'sine', .05);
+        }
+      }
+      if (fim) concluiu(); else if (mudou) mostra();
+    };
+    glifo.onpointerdown = ev => { try { glifo.setPointerCapture(ev.pointerId); } catch (e) {} mover(ev); };
+    glifo.onpointermove = mover;
+    function concluiu() {
+      guia.remove(); ponto.remove();
+      acertos++; desenhaEstrelas(); musiquinha();
+      const r = glifo.getBoundingClientRect(); particulas(r.left + r.width / 2, r.top + r.height / 2);
+      premio.classList.add('salta');
+      fala(ELOGIOS[rnd(ELOGIOS.length)] + ' ' + (ehLetra ? `${ch}, de ${VOGAIS[ch][0]}!` : `Número ${NUMN[+ch]}!`), 250);
+      if (acertos >= 5) {
+        if (!ehLetra) { niveis.tracaNum = (niveis.tracaNum || 0) + 1; salvaNiveis(); }
+        setTimeout(() => { if (seq === meu) festa(); }, 2200);
+      } else setTimeout(() => { if (seq === meu) proximoGlifo(idx + 1); }, 2600);
+    }
+  }
+
+  const MENU = [['cores', 'Cores', () => svgFlor('#e8343a')], ['formas', 'Formas', () => svgForma('estrela', '#ffcf33')],
+                ['bichos', 'Bichos', () => svgBicho('vaca')], ['contar', 'Contar', () => svgNinho(3)],
+                ['letras', 'Letras', () => svgLetra('A', '#9b5de5')], ['numeros', 'Números', () => svgLetra('3', '#ff8c1a')],
+                ['tracaLetras', 'Escrever letras', () => svgPontilhado('A')], ['tracaNum', 'Escrever números', () => svgPontilhado('2')]];
+  const FALA_MENU = { cores: 'Vamos aprender as cores!', formas: 'Vamos aprender as formas!', bichos: 'Vamos ouvir os bichos!', contar: 'Vamos contar!', letras: 'Vamos aprender as letras!', numeros: 'Vamos aprender os números!' };
+  const ELOGIOS = ['Muito bem!', 'Isso mesmo!', 'Parabéns!', 'Você acertou!', 'Que legal!'];
+
+  // ----- nível adaptativo (0 a 3 por jogo) -----
+  const niveis = {};
+  try { Object.assign(niveis, JSON.parse(localStorage.getItem('niveis') || '{}')); } catch (e) {}
+  const salvaNiveis = () => { try { localStorage.setItem('niveis', JSON.stringify(niveis)); } catch (e) {} };
+
+  let meta = 5, jogo = null, acertos = 0, serie = 0, seq = 0, travado = false, repetePergunta = null;
+  function desenhaEstrelas() {
+    estrelasEl.innerHTML = '';
+    for (let i = 0; i < meta; i++) { const s = document.createElement('span'); s.textContent = '★'; if (i < acertos) s.className = 'on' + (i === acertos - 1 ? ' nova' : ''); estrelasEl.appendChild(s); }
+  }
+  function abreMenu(falar = true) {
+    seq++; jogo = null; emFase = false; estrelasEl.style.fontSize = ''; apr.classList.add('menu'); apr.classList.remove('tracando', 'arena'); opcoesEl.innerHTML = ''; arena.innerHTML = ''; dicaEl.innerHTML = '';
+    if (falar) fala(modo === 'aprender' ? 'O que vamos aprender?' : 'Do que vamos brincar?');
+  }
+  function iniciaJogo(j) {
+    meta = 5; aposFesta = null; estrelasEl.style.fontSize = ''; apr.classList.remove('arena');
+    if (ARENA[j]) return iniciaArena(j);
+    if (j.startsWith('traca')) return iniciaTraco(j);
+    apr.classList.remove('tracando'); jogo = j; acertos = 0; serie = 0; apr.classList.remove('menu'); desenhaEstrelas();
+    plim(); novaRodada(FALA_MENU[j] + ' ');
+  }
+  function novaRodada(prefixo = '') {
+    const meu = ++seq; travado = false;
+    let erros = 0;
+    const nv = Math.min(niveis[jogo] || 0, 3), k = 2 + Math.min(nv, 2);
+    const r = JOGOS[jogo](nv, k);
+    dicaEl.innerHTML = ''; if (r.dica) dicaEl.appendChild(r.dica);
+    opcoesEl.innerHTML = ''; opcoesEl.style.setProperty('--n', k);
+    repetePergunta = (pre = '') => { const d = r.antes && !pre ? r.antes() : 0; fala(pre + r.pergunta, d);
+      if (r.antes && pre) setTimeout(() => { if (seq === meu) r.antes(); }, 2600); };
+    r.opcoes.forEach(op => {
+      const b = document.createElement('button'); b.className = 'cartao'; b.appendChild(op.svg);
+      b.addEventListener('pointerdown', ev => {
+        if (travado || seq !== meu) return;
+        if (op.certo) {
+          travado = true;
+          const c = b.querySelector('.corpo'); c.classList.add('pula');
+          particulas(ev.clientX, ev.clientY); musiquinha();
+          acertos++; desenhaEstrelas();
+          if (erros === 0) { if (++serie >= 3 && nv < 3) { niveis[jogo] = nv + 1; serie = 0; salvaNiveis(); } } else serie = 0;
+          fala(ELOGIOS[rnd(ELOGIOS.length)] + ' ' + r.certoTxt, 250);
+          if (acertos >= 5) setTimeout(() => { if (seq === meu) festa(); }, 1900);
+          else setTimeout(() => { if (seq === meu) novaRodada(); }, 2300);
+        } else {
+          b.classList.add('errou'); tom(300, 220, .25, 'sine', .15);
+          if (++erros >= 2 && nv > 0) { niveis[jogo] = nv - 1; salvaNiveis(); }
+          serie = 0;
+          fala(op.erro + ' Tente de novo!');
+        }
+      });
+      opcoesEl.appendChild(b);
+    });
+    repetePergunta(prefixo);
+  }
+  function festa() {
+    const meu = ++seq;
+    for (let i = 0; i < 6; i++) setTimeout(() => particulas(innerWidth * (.15 + Math.random() * .7), innerHeight * (.35 + Math.random() * .4)), i * 220);
+    [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tom(f, f, .2, 'triangle', .18, i * .14));
+    fala(meta === 5 ? 'Parabéns! Você ganhou cinco estrelas!' : 'Parabéns! Você conseguiu!', 300);
+    setTimeout(() => { if (seq === meu) (aposFesta ? aposFesta() : abreMenu()); }, 4200);
+  }
+
+  // ================= MODO BRINCAR: jogos de ação =================
+  const arena = $('arena');
+  const ARENA = {};
+  const capital = t => t[0].toUpperCase() + t.slice(1);
+  const piu = (v = .2) => { tom(1800, 2500, .08, 'sine', v); tom(2000, 2700, .08, 'sine', v, .12); };
+  const estouro = () => { tom(700, 70, .12, 'square', .18); tom(1400, 200, .08, 'triangle', .15); };
+  function svgPinto() {
+    const s = el('svg', { viewBox: '-50 -94 100 98' }), g = el('g', { class: 'corpo' });
+    const a = (t, at) => g.appendChild(el(t, at));
+    a('path', { d: 'M-10 -6 V-1 M-18 0 H-3 M10 -6 V-1 M3 0 H18', stroke: '#f08a1c', 'stroke-width': 5, 'stroke-linecap': 'round', fill: 'none' });
+    a('ellipse', { cx: -37, cy: -36, rx: 9, ry: 16, fill: '#f2b92a', transform: 'rotate(18 -37 -36)' });
+    a('ellipse', { cx: 37, cy: -36, rx: 9, ry: 16, fill: '#f2b92a', transform: 'rotate(-18 37 -36)' });
+    a('path', { d: 'M-6 -78 q-4 -12 2 -14 q2 6 4 12 q2 -10 8 -10 q0 8 -2 12 Z', fill: '#f2b92a' });
+    a('circle', { cx: 0, cy: -42, r: 38, fill: 'url(#gPato)' });
+    a('circle', { cx: -24, cy: -34, r: 7, fill: '#ff9f6b', opacity: .55 });
+    a('circle', { cx: 24, cy: -34, r: 7, fill: '#ff9f6b', opacity: .55 });
+    a('path', { d: 'M-9 -42 L0 -32 L9 -42 L0 -48 Z', fill: '#ff8c1a' });
+    [-14, 14].forEach(x => { const o = el('g', { class: 'olho' });
+      o.appendChild(el('ellipse', { cx: x, cy: -54, rx: 6, ry: 7.5, fill: '#3b2a20' }));
+      o.appendChild(el('circle', { cx: x + 2, cy: -57, r: 2.3, fill: '#fff' })); g.appendChild(o); });
+    s.appendChild(g); return s;
+  }
+  function svgBalao(cor, rot) {
+    const s = el('svg', { viewBox: '0 0 100 160' });
+    s.appendChild(el('path', { d: 'M50 108 q-10 20 0 34 q8 10 0 18', stroke: '#fff', 'stroke-width': 2.5, fill: 'none', opacity: .9 }));
+    s.appendChild(el('path', { d: 'M42 110 L50 100 L58 110 Z', fill: cor }));
+    s.appendChild(el('ellipse', { cx: 50, cy: 54, rx: 43, ry: 51, fill: cor }));
+    s.appendChild(el('ellipse', { cx: 50, cy: 54, rx: 43, ry: 51, fill: 'url(#gBrilho)' }));
+    s.appendChild(el('ellipse', { cx: 33, cy: 32, rx: 9, ry: 15, fill: '#fff', opacity: .55, transform: 'rotate(24 33 32)' }));
+    if (rot) { const t = el('text', { x: 50, y: 74, 'text-anchor': 'middle', 'font-size': 56, 'font-weight': 800, fill: '#fff' }); t.textContent = rot; s.appendChild(t); }
+    return s;
+  }
+  function svgMiniLab() {
+    const s = el('svg', { viewBox: '0 0 100 100' }), g = el('g', { class: 'corpo' });
+    g.appendChild(el('rect', { x: 6, y: 10, width: 88, height: 80, rx: 16, fill: '#7ccb55' }));
+    g.appendChild(el('path', { d: 'M22 30 H50 V70 H78 V40', stroke: '#f0d9a6', 'stroke-width': 15, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' }));
+    g.appendChild(el('circle', { cx: 22, cy: 30, r: 8, fill: '#ffd84d' }));
+    g.appendChild(el('circle', { cx: 78, cy: 40, r: 9, fill: '#fff' })); g.appendChild(el('circle', { cx: 78, cy: 32, r: 4, fill: '#ef4b4b' }));
+    s.appendChild(g); return s;
+  }
+  function svgMiniMem() {
+    const s = el('svg', { viewBox: '0 0 100 100' }), g = el('g', { class: 'corpo' });
+    g.appendChild(el('rect', { x: 8, y: 22, width: 46, height: 60, rx: 10, fill: '#ff8c1a', transform: 'rotate(-8 31 52)' }));
+    g.appendChild(el('path', { d: 'M31 40 l4 9 10 1 -8 6 3 10 -9 -6 -9 6 3 -10 -8 -6 10 -1 Z', fill: '#fff', opacity: .85, transform: 'rotate(-8 31 52)' }));
+    g.appendChild(el('rect', { x: 46, y: 20, width: 46, height: 60, rx: 10, fill: '#fff', transform: 'rotate(7 69 50)' }));
+    g.appendChild(el('circle', { cx: 69, cy: 52, r: 15, fill: '#f8b4c4' })); g.appendChild(el('ellipse', { cx: 69, cy: 55, rx: 7, ry: 5, fill: '#ef8fa6' }));
+    g.appendChild(el('circle', { cx: 63, cy: 47, r: 2.4, fill: '#3b2a20' })); g.appendChild(el('circle', { cx: 75, cy: 47, r: 2.4, fill: '#3b2a20' }));
+    s.appendChild(g); return s;
+  }
+  function iniciaArena(j) { plim(); abreFases(j); }
+
+  // ----- fases (10 por jogo) -----
+  const N_FASES = 10, fases = {};
+  try { Object.assign(fases, JSON.parse(localStorage.getItem('fases') || '{}')); } catch (e) {}
+  let emFase = false, aposFesta = null;
+  const setMeta = m => { meta = m; estrelasEl.style.fontSize = m > 6 ? 'clamp(15px,2.1vw,26px)' : ''; desenhaEstrelas(); };
+  const venceu = (j, n) => { fases[j] = Math.max(fases[j] || 0, n); try { localStorage.setItem('fases', JSON.stringify(fases)); } catch (e) {} };
+  function abreFases(j) {
+    seq++; jogo = j; emFase = false; acertos = 0; apr.classList.remove('menu', 'tracando'); apr.classList.add('arena');
+    arena.className = 'a-fases'; arena.innerHTML = ''; dicaEl.innerHTML = ''; setMeta(0);
+    const livre = Math.min((fases[j] || 0) + 1, N_FASES), g = document.createElement('div'); g.className = 'grade-fases';
+    for (let n = 1; n <= N_FASES; n++) {
+      const b = document.createElement('button'); b.textContent = n; b.setAttribute('aria-label', 'Fase ' + n);
+      b.className = 'fase' + (n <= (fases[j] || 0) ? ' feita' : '') + (n === livre ? ' atual' : '') + (n > livre ? ' trancada' : '');
+      b.addEventListener('click', () => {
+        if (n > livre) { b.classList.remove('treme'); void b.offsetWidth; b.classList.add('treme'); tom(300, 220, .2, 'sine', .12); return; }
+        emFase = true; acertos = 0; arena.innerHTML = ''; arena.className = 'a-' + j; plim();
+        aposFesta = () => abreFases(j); ARENA[j](n);
+      });
+      g.appendChild(b);
+    }
+    arena.appendChild(g);
+    repetePergunta = () => fala('Escolha a fase!'); repetePergunta();
+  }
+  const posAleatoria = b => { b.style.left = (3 + Math.random() * 78) + '%'; b.style.top = (4 + Math.random() * 62) + '%'; };
+
+  // ----- pega-pega -----
+  //            pintinhos, velocidade(ms), meta, distratores, tamanho, esconde
+  const PEGA = [[1, 1900, 5, 0, 1, 0], [1, 1300, 6, 0, 1, 0], [2, 1500, 6, 0, 1, 0], [2, 1300, 7, 1, .9, 0], [3, 1200, 8, 1, .9, 0],
+                [2, 1300, 8, 0, .9, 1], [3, 1100, 9, 2, .8, 0], [3, 1000, 10, 2, .8, 1], [4, 900, 10, 3, .75, 1], [4, 750, 12, 3, .7, 1]];
+  ARENA.pega = n => {
+    const meu = ++seq, [qtd, vel, m, distr, tam, esconde] = PEGA[n - 1]; setMeta(m);
+    let ganhou = false;
+    const cria = (desenho, ehPinto, nomeErro) => {
+      const b = document.createElement('button'); b.className = 'fujao'; b.style.setProperty('--tam', tam);
+      b.setAttribute('aria-label', ehPinto ? 'Pintinho' : 'Outro bicho');
+      b.appendChild(desenho); posAleatoria(b); arena.appendChild(b);
+      let preso = false;
+      const anda = () => {
+        if (seq !== meu || ganhou) return;
+        if (preso) return setTimeout(anda, 300);
+        const d = vel * (ehPinto ? 1 : 1.5) * (.85 + Math.random() * .3);
+        if (ehPinto && esconde && Math.random() < .35) {
+          b.classList.add('some');
+          setTimeout(() => { if (seq === meu && !preso) { b.style.transitionDuration = '0ms'; posAleatoria(b); b.classList.remove('some'); } }, 800);
+          return setTimeout(anda, 1500);
+        }
+        b.style.transitionDuration = d + 'ms'; posAleatoria(b);
+        if (ehPinto && Math.random() < .25) piu(.05);
+        setTimeout(anda, d + 100 + Math.random() * 400);
+      };
+      setTimeout(anda, 700 + Math.random() * 600);
+      b.addEventListener('pointerdown', ev => {
+        if (preso || seq !== meu || ganhou) return;
+        if (!ehPinto) {
+          desenho.classList.remove('treme'); void desenho.getBoundingClientRect(); desenho.classList.add('treme');
+          setTimeout(() => desenho.classList.remove('treme'), 520);
+          tom(300, 220, .2, 'sine', .12); fala(nomeErro + ' Pega o pintinho!'); return;
+        }
+        preso = true; piu(); particulas(ev.clientX, ev.clientY); acertos++; desenhaEstrelas();
+        const r = b.getBoundingClientRect(), ar = arena.getBoundingClientRect();
+        b.style.transitionDuration = '0ms'; b.style.left = (r.left - ar.left) + 'px'; b.style.top = (r.top - ar.top) + 'px';
+        b.classList.add('pego');
+        if (acertos >= meta) { ganhou = true; venceu('pega', n); fala('Pegou todos!', 150); setTimeout(() => { if (seq === meu) festa(); }, 1500); }
+        else {
+          if (qtd === 1 || Math.random() < .4) fala(['Pegou!', 'Peguei você!', 'Muito bem!'][rnd(3)], 150);
+          setTimeout(() => { if (seq === meu) { posAleatoria(b); b.classList.remove('pego'); preso = false; } }, 1000);
+        }
+      });
+    };
+    for (let i = 0; i < qtd; i++) cria(svgPinto(), true);
+    ['porco', 'cachorro', 'pato'].slice(0, distr).forEach(d => cria(svgBicho(d), false, essa(ARTIGO[d])));
+    repetePergunta = () => fala(distr ? 'Pega só o pintinho!' : qtd > 1 ? 'Pega os pintinhos!' : 'Pega o pintinho!');
+    repetePergunta();
+  };
+
+  // ----- balões -----
+  const CORES_B = [['#ef4b4b', 'vermelho'], ['#ffcf33', 'amarelo'], ['#3a8bff', 'azul'], ['#35b34a', 'verde'], ['#ff7ab6', 'rosa'], ['#9b5de5', 'roxo'], ['#ff8c1a', 'laranja']];
+  const bCores = k => CORES_B.slice(0, k).map(c => ({ rot: '', cor: c[0], pede: `Estoure o balão ${c[1]}!`, erro: `Esse é ${c[1]}.`, dica: () => svgBolha(c[0]) }));
+  const bNums = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i).map(v => ({ rot: String(v), pede: `Estoure o número ${NUMN[v]}!`, erro: `Esse é o número ${NUMN[v]}.`, dica: () => svgNumero(v) }));
+  const bLetras = () => Object.keys(VOGAIS).map(L => ({ rot: L, pede: `Estoure a letra ${L}!`, erro: `Essa é a letra ${L}.`, dica: () => svgLetra(L, '#9b5de5') }));
+  //            itens, segundos de subida, meta, mostra dica, tamanho
+  const BALOES = [[() => bCores(3), 8, 5, 1, 1], [() => bCores(5), 7.5, 6, 1, 1], [() => bCores(7), 6.5, 7, 1, 1],
+                  [() => bNums(1, 5), 7.5, 6, 1, 1], [() => bNums(1, 9), 7, 7, 1, 1], [() => bLetras(), 7, 7, 1, 1],
+                  [() => bCores(7), 5, 8, 0, .85], [() => bNums(0, 9), 5.5, 8, 0, .9], [() => [...bLetras(), ...bNums(1, 9)], 5.5, 9, 0, .9],
+                  [() => [...bCores(7), ...bLetras(), ...bNums(0, 9)], 4.8, 10, 0, .8]];
+  ARENA.baloes = n => {
+    const meu = ++seq, [gera, sobe, m, comDica, tam] = BALOES[n - 1], pool = gera(); setMeta(m);
+    let alvo = null, cont = 0, pausa = false;
+    const novoAlvo = () => {
+      let a; do { a = pool[rnd(pool.length)]; } while (a === alvo); alvo = a; pausa = false;
+      dicaEl.innerHTML = ''; if (comDica) dicaEl.appendChild(alvo.dica());
+      repetePergunta = () => fala(alvo.pede); repetePergunta();
+    };
+    const solta = () => {
+      if (seq !== meu) return;
+      const c = cont++ % 3 === 0 ? alvo : pool[rnd(pool.length)], cor = c.cor || CORES_B[rnd(CORES_B.length)][0];
+      const b = document.createElement('button'); b.className = 'balao'; b.setAttribute('aria-label', 'Balão');
+      b.style.setProperty('--tam', tam); b.style.left = (3 + Math.random() * 82) + '%'; b.style.animationDuration = (sobe + Math.random() * 2) + 's';
+      const desenho = svgBalao(cor, c.rot); b.appendChild(desenho);
+      b.addEventListener('animationend', e => { if (e.target === b) b.remove(); });
+      b.addEventListener('pointerdown', ev => {
+        if (seq !== meu || pausa) return;
+        if (c === alvo) {
+          estouro(); particulas(ev.clientX, ev.clientY, [cor], ['●', '✦']); b.remove();
+          acertos++; desenhaEstrelas(); pausa = true;
+          if (acertos >= meta) { venceu('baloes', n); fala('Muito bem!', 100); setTimeout(() => { if (seq === meu) festa(); }, 1300); }
+          else { fala(ELOGIOS[rnd(ELOGIOS.length)], 100); setTimeout(() => { if (seq === meu) novoAlvo(); }, 1300); }
+        } else {
+          desenho.classList.remove('treme'); void desenho.getBoundingClientRect(); desenho.classList.add('treme');
+          tom(300, 220, .2, 'sine', .12); fala(c.erro);
+        }
+      });
+      arena.appendChild(b);
+      setTimeout(solta, Math.max(600, 1150 - n * 45));
+    };
+    novoAlvo(); solta();
+  };
+
+  // ----- jogo da memória -----
+  const MEM = [...Object.keys(ARTIGO).map(k => ({ k, nome: capital(ARTIGO[k]), svg: () => svgBicho(k) })),
+    { k: 'pinto', nome: 'O pintinho', svg: svgPinto }, { k: 'flor', nome: 'A flor', svg: () => svgFlor('#e8343a') },
+    { k: 'estrela', nome: 'A estrela', svg: () => svgForma('estrela', '#ffcf33') }, { k: 'coracao', nome: 'O coração', svg: () => svgForma('coracao', '#ff7ab6') },
+    { k: 'balao', nome: 'O balão', svg: () => svgBalao('#3a8bff') }, { k: 'ninho', nome: 'O ninho', svg: () => svgNinho(3) }];
+  //             pares, colunas, linhas, tempo para desvirar (ms)
+  const MEMORIA = [[2, 4, 1, 1500], [3, 3, 2, 1500], [4, 4, 2, 1400], [5, 5, 2, 1400], [6, 4, 3, 1300],
+                   [6, 6, 2, 900], [8, 6, 3, 1200], [9, 6, 3, 1100], [10, 5, 4, 1000], [12, 6, 4, 900]];
+  ARENA.memoria = n => {
+    const meu = ++seq, [pares, col, lin, espera] = MEMORIA[n - 1]; setMeta(pares);
+    const itens = mistura(MEM).slice(0, pares), cartas = mistura([...itens, ...itens]);
+    const grade = document.createElement('div'); grade.className = 'grade-mem';
+    grade.style.setProperty('--col', col); grade.style.setProperty('--lin', lin); arena.appendChild(grade);
+    let aberta = null, trava = false;
+    cartas.forEach(it => {
+      const c = document.createElement('button'); c.className = 'carta'; c.setAttribute('aria-label', 'Carta');
+      c.innerHTML = '<span class="verso"></span><span class="frente"></span>';
+      c.querySelector('.frente').appendChild(it.svg());
+      c.addEventListener('pointerdown', () => {
+        if (trava || seq !== meu || c.classList.contains('virada')) return;
+        c.classList.add('virada'); plim(700);
+        if (!aberta) { aberta = { c, it }; fala(it.nome + '!'); return; }
+        const a = aberta; aberta = null;
+        if (a.it === it) {
+          acertos++; desenhaEstrelas(); musiquinha(); c.classList.add('par'); a.c.classList.add('par');
+          const r = c.getBoundingClientRect(); particulas(r.left + r.width / 2, r.top + r.height / 2);
+          fala(`Achou! ${it.nome}!`, 150);
+          if (acertos >= meta) { venceu('memoria', n); setTimeout(() => { if (seq === meu) festa(); }, 1900); }
+        } else {
+          trava = true; fala(it.nome + '!');
+          setTimeout(() => { c.classList.remove('virada'); a.c.classList.remove('virada'); trava = false; }, espera);
+        }
+      });
+      grade.appendChild(c);
+    });
+    repetePergunta = () => fala('Ache os iguais!'); repetePergunta();
+  };
+
+  // ----- labirinto -----
+  //             colunas, linhas, labirintos, milhos
+  const LABS = [[3, 2, 2, 0], [4, 2, 2, 0], [4, 3, 3, 1], [5, 3, 3, 1], [5, 4, 3, 2], [6, 4, 3, 2], [7, 4, 3, 3], [7, 5, 3, 3], [8, 5, 3, 4], [9, 5, 3, 5]];
+  ARENA.labirinto = n => {
+    const [C, R, m, nMilho] = LABS[n - 1]; setMeta(m);
+    const rodada = primeira => {
+      const meu = ++seq; arena.innerHTML = '';
+      const id = (x, y) => y * C + x, D = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      const lig = new Set(), vis = new Set([0]), pilha = [[0, 0]];
+      while (pilha.length) {
+        const [x, y] = pilha[pilha.length - 1];
+        const viz = mistura(D).map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => a >= 0 && b >= 0 && a < C && b < R && !vis.has(id(a, b)));
+        if (!viz.length) { pilha.pop(); continue; }
+        const [a, b] = viz[0]; vis.add(id(a, b)); lig.add(id(x, y) + '-' + id(a, b)); lig.add(id(a, b) + '-' + id(x, y)); pilha.push([a, b]);
+      }
+      const dist = { 0: 0 }, fila = [0]; let longe = 0;
+      while (fila.length) {
+        const u = fila.shift(), ux = u % C, uy = (u - ux) / C;
+        D.forEach(([dx, dy]) => { const a = ux + dx, b = uy + dy; if (a < 0 || b < 0 || a >= C || b >= R) return;
+          const v = id(a, b); if (lig.has(u + '-' + v) && !(v in dist)) { dist[v] = dist[u] + 1; if (dist[v] > dist[longe]) longe = v; fila.push(v); } });
+      }
+      const s = el('svg', { viewBox: `0 0 ${C * 100} ${R * 100}`, class: 'lab' });
+      const cx = v => (v % C) * 100 + 50, cy = v => Math.floor(v / C) * 100 + 50;
+      [['#cfae6c', 68], ['#f0d9a6', 56]].forEach(([cor, w]) => lig.forEach(par => { const [u, v] = par.split('-').map(Number); if (u < v)
+        s.appendChild(el('line', { x1: cx(u), y1: cy(u), x2: cx(v), y2: cy(v), stroke: cor, 'stroke-width': w, 'stroke-linecap': 'round' })); }));
+      for (let v = 0; v < C * R; v++) s.appendChild(el('circle', { cx: cx(v), cy: cy(v), r: 5, fill: '#e3c88e' }));
+      const milhos = new Map();
+      mistura(Array.from({ length: C * R }, (_, i) => i).filter(v => v !== 0 && v !== longe)).slice(0, nMilho).forEach(v => {
+        const g = el('g', { class: 'milho', transform: `translate(${cx(v)},${cy(v)})` });
+        g.appendChild(el('path', { d: 'M-16 4 q-10 -20 6 -30 M16 4 q10 -20 -6 -30', stroke: '#4fae4a', 'stroke-width': 9, 'stroke-linecap': 'round', fill: 'none' }));
+        g.appendChild(el('ellipse', { cx: 0, cy: -4, rx: 13, ry: 22, fill: '#ffc21a' }));
+        g.appendChild(el('path', { d: 'M-7 -16 h14 M-10 -6 h20 M-9 4 h18', stroke: '#e89a00', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+        s.appendChild(g); milhos.set(v, g);
+      });
+      const mae = svgBicho('galinha'); [['x', cx(longe) - 40], ['y', cy(longe) - 48], ['width', 80], ['height', 88]].forEach(([k, v]) => mae.setAttribute(k, v)); s.appendChild(mae);
+      const andante = el('g', { class: 'andante' }), pinto = svgPinto();
+      [['x', 20], ['y', 16], ['width', 60], ['height', 62]].forEach(([k, v]) => pinto.setAttribute(k, v));
+      const anel = el('circle', { cx: 50, cy: 50, r: 40, class: 'anel' }); andante.appendChild(anel); andante.appendChild(pinto); s.appendChild(andante);
+      arena.appendChild(s);
+      let cur = 0, fim = false, avisou = 0;
+      const move = ev => {
+        if (fim || seq !== meu) return;
+        if (ev.pointerType === 'mouse' && !ev.buttons) return;
+        const pt = s.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+        const p = pt.matrixTransform(s.getScreenCTM().inverse()), x = Math.floor(p.x / 100), y = Math.floor(p.y / 100);
+        if (x < 0 || y < 0 || x >= C || y >= R) return;
+        const v = id(x, y); if (v === cur || !lig.has(cur + '-' + v)) return;
+        cur = v; anel.remove(); andante.style.transform = `translate(${x * 100}px, ${y * 100}px)`; tom(1500, 1900, .05, 'sine', .1);
+        if (milhos.has(v)) { milhos.get(v).remove(); milhos.delete(v); plim(900); if (!milhos.size) fala('Pegou todo o milho! Agora leve para a mamãe!'); }
+        if (cur !== longe) return;
+        if (milhos.size) { if (Date.now() - avisou > 4000) { avisou = Date.now(); fala('Falta pegar o milho!'); } return; }
+        fim = true; acertos++; desenhaEstrelas(); musiquinha(); piu();
+        const r = mae.getBoundingClientRect(); particulas(r.left + r.width / 2, r.top + r.height / 2);
+        fala('Achou a mamãe! Piu, piu!', 200);
+        if (acertos >= meta) { venceu('labirinto', n); setTimeout(() => { if (seq === meu) festa(); }, 1900); }
+        else setTimeout(() => { if (seq === meu) rodada(false); }, 2200);
+      };
+      s.onpointerdown = ev => { try { s.setPointerCapture(ev.pointerId); } catch (e) {} move(ev); };
+      s.onpointermove = move;
+      const instr = nMilho ? 'Pegue o milho e leve o pintinho até a mamãe!' : 'Leve o pintinho até a mamãe!';
+      repetePergunta = () => fala(instr);
+      fala(primeira ? instr + ' Arraste o dedo pelo caminho.' : 'Mais um caminho!');
+    };
+    rodada(true);
+  };
+
+  const MENU_BRINCAR = [['pega', 'Pega-pega', svgPinto], ['labirinto', 'Labirinto', svgMiniLab],
+                        ['baloes', 'Balões', () => svgBalao('#ef4b4b')], ['memoria', 'Memória', svgMiniMem]];
+  let modo = 'aprender';
+  function montaMenu() {
+    menuEl.innerHTML = ''; menuEl.className = 'm-' + modo;
+    (modo === 'aprender' ? MENU : MENU_BRINCAR).forEach(([id, nome, desenho]) => {
+      const b = document.createElement('button'); b.className = 'cartao';
+      b.appendChild(desenho()); b.appendChild(document.createTextNode(nome));
+      b.addEventListener('click', () => iniciaJogo(id));
+      menuEl.appendChild(b);
+    });
+  }
+  const abreModo = m => ev => {
+    ev.stopPropagation();
+    if (noite) { noite = false; document.body.classList.remove('noite'); }
+    modo = m; montaMenu(); apr.hidden = false; plim(); abreMenu();
+  };
+  $('btn-aprender').addEventListener('click', abreModo('aprender'));
+  $('btn-brincar').addEventListener('click', abreModo('brincar'));
+  $('voltar').addEventListener('click', () => {
+    try { speechSynthesis.cancel(); } catch (e) {}
+    if (emFase) abreFases(jogo); else if (jogo) abreMenu(); else { seq++; apr.hidden = true; }
+  });
+  $('ouvir').addEventListener('click', () => { if (repetePergunta && jogo) repetePergunta(); });
+
+  // ---------- enfeites: bandeirinhas e tela inicial ----------
+  (() => {
+    const g = $('bandeirinhas'), cs = ['#ef4b4b', '#ffcf33', '#2f9bd6', '#4fae4a', '#ff7ab6', '#ff8c1a'];
+    const P = [[190, 338], [640, 470], [1100, 380]], N = 17;
+    for (let i = 0; i < N; i++) {
+      const t = (i + .5) / N, u = 1 - t;
+      const x = u * u * P[0][0] + 2 * u * t * P[1][0] + t * t * P[2][0], y = u * u * P[0][1] + 2 * u * t * P[1][1] + t * t * P[2][1];
+      const dx = 2 * u * (P[1][0] - P[0][0]) + 2 * t * (P[2][0] - P[1][0]), dy = 2 * u * (P[1][1] - P[0][1]) + 2 * t * (P[2][1] - P[1][1]);
+      g.appendChild(el('path', { d: 'M-17 0 H17 L0 36 Z', fill: cs[i % cs.length],
+        transform: `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${(Math.atan2(dy, dx) * 180 / Math.PI).toFixed(1)})` }));
+    }
+    const ib = $('inicio-bichos');
+    ['vaca', 'galinha', 'jumento', 'porco', 'cachorro'].forEach(n => ib.appendChild(svgBicho(n)));
+  })();
+
+  // ---------- início / tela cheia ----------
+  function telaCheia() {
+    try {
+      const d = document.documentElement;
+      const p = (d.requestFullscreen || d.webkitRequestFullscreen)?.call(d);
+      if (p && p.catch) p.catch(()=>{});
+      screen.orientation?.lock?.('landscape').catch(()=>{});
+    } catch(e) {}
+  }
+  document.getElementById('play').addEventListener('click', () => {
+    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); } catch(e) {}
+    telaCheia();
+    const ini = document.getElementById('inicio');
+    ini.style.opacity = 0; setTimeout(() => ini.remove(), 600);
+    musiquinha();
+    fala('Oi! Vamos brincar na fazendinha? Toque nos bichinhos!', 700);
+  });
+  document.getElementById('tela-cheia').addEventListener('click', ev => { ev.stopPropagation(); telaCheia(); });
+  document.addEventListener('contextmenu', e => e.preventDefault());
+})();
+</script>
+</body>
+</html>
