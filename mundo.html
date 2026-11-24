@@ -178,6 +178,9 @@
   const T = THREE, $ = id => document.getElementById(id);
   const TEM_CASA = /*HOME*/true;
   if (TEM_CASA) $('casa').hidden = false;
+  // confere se há versão nova no site e recarrega sozinho (o navegador guarda a página antiga por alguns minutos)
+  const VERSAO = '20261124164223';
+  if (TEM_CASA) fetch('versao.json?' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(d => { if (d.v && d.v !== VERSAO && !location.search.includes(d.v)) location.replace(location.pathname + '?v=' + d.v + location.hash); }).catch(() => {});
 
   // ================= áudio e voz =================
   let ctx = null, vozPt = null, musicaOn = true;
