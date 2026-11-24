@@ -99,6 +99,13 @@
     font-size:min(9vw, calc(34vh / var(--lin, 2))); font-weight:800; cursor:pointer; box-shadow:0 6px 0 rgba(120,90,20,.2); padding:0; line-height:1; }
   .e-carta.virada { background:#fff; } .e-carta.par { background:#e3f7d6; }
   body.na-escola #topo, body.na-escola #pular { display:none; }
+  #bt-sur { position:relative; } #bt-sur i { position:absolute; right:-8px; top:-8px; min-width:28px; height:28px; border-radius:14px; background:#ff6b5e; color:#fff;
+    font-style:normal; font-weight:800; font-size:17px; line-height:24px; border:2px solid #fff; text-align:center; }
+  #album { position:fixed; left:14px; top:92px; z-index:8; background:#fff6e0; border-radius:28px; padding:14px; box-shadow:0 8px 0 #ecd9ac, 0 18px 30px rgba(0,0,0,.2); }
+  #album-grade { display:grid; grid-template-columns:repeat(4, auto); gap:10px; }
+  .slot { width:64px; height:64px; border-radius:18px; background:#e8dcc0; color:#fff; font-size:34px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .slot.ok { background:#fff; box-shadow:0 4px 0 #ecd9ac; }
+  body.vestindo #album, body.na-escola #album { display:none; }
   @media (max-height:520px) { #painel { transform:scale(.8); } .bt { width:54px; height:54px; } #pular { width:96px; height:96px; } }
 </style>
 </head>
@@ -111,6 +118,7 @@
     <button class="bt" id="bt-roupa" aria-label="Mudar a roupa">👗</button>
     <button class="bt" id="bt-som" aria-label="Música">🎵</button>
     <button class="bt" id="bt-noite" aria-label="Dia ou noite">🌙</button>
+    <button class="bt" id="bt-sur" aria-label="Surpresas descobertas">🎁<i id="n-sur">0</i></button>
   </div>
   <div id="missao">
     <span id="m-icone">⭐</span><span id="m-pontos"></span>
@@ -120,6 +128,7 @@
 </div>
 <button id="pular" aria-label="Pular"><svg width="56%" viewBox="0 0 100 100"><path d="M50 14 L88 58 H64 V86 H36 V58 H12 Z" fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"/></svg></button>
 <div id="faixa"></div>
+<div id="album" hidden><div id="album-grade"></div></div>
 
 <div id="roupa" class="tela" hidden>
   <div id="painel">
@@ -127,6 +136,7 @@
     <div class="linha" data-k="cabelo"><span>💇</span></div>
     <div class="linha" data-k="pele"><span>🙂</span></div>
     <div class="linha" data-k="enfeite"><span>✨</span></div>
+    <div class="linha" data-k="asas" hidden><span>🧚</span></div>
     <div class="linha" style="justify-content:center; gap:26px"><button class="bt" id="novo" aria-label="Recomeçar o jogo do início">🔄</button><button class="bt" id="ok" aria-label="Pronto">✔</button></div>
   </div>
 </div>
@@ -197,7 +207,7 @@
   const MEL = [523, 659, 784, 659, 587, 698, 880, 698, 523, 659, 784, 1047, 880, 784, 659, 587];
   let passoMus = 0;
   setInterval(() => { if (!ctx || !musicaOn || !rodando || document.hidden) return;
-    const f = MEL[passoMus % MEL.length]; tom(f, f, .28, 'triangle', .035); if (passoMus % 4 === 0) tom(f / 4, f / 4, .5, 'sine', .06); passoMus++; }, 330);
+    const f = MEL[passoMus % MEL.length]; tom(f, f, .28, 'triangle', .035); if (passoMus % 4 === 0) tom(f / 4, f / 4, .5, 'sine', .06); if (dancando) { tom(f * 2, f * 2, .1, 'square', .025, .165); tom(100, 50, .14, 'sine', .14); } passoMus++; }, 330);
 
   // ================= cena =================
   const canvas = $('c');
@@ -257,7 +267,7 @@
 
   // ---------- natureza ----------
   const obst = [], arvs = [];                       // círculos sólidos {x,z,r}
-  const livres = [[0, 8, 9], [24, -6, 13], [0, -34, 15], [-34, 12, 13], [-10, -6, 8], [-18, 15, 7], [50, 8, 12], [24, 8, 26, 1], [-28, -20, 8], [-18, 49, 14], [36, 34, 6], [-8, 28, 10], [-12, 8.6, 14, 1], [-32, -5, 8.5], [20, 24, 8.5], [13, -19, 8], [42, -6, 8], [22, 46, 9]];
+  const livres = [[0, 8, 9], [24, -6, 13], [0, -34, 15], [-34, 12, 13], [-10, -6, 8], [-18, 15, 7], [50, 8, 12], [24, 8, 26, 1], [-28, -20, 8], [-18, 49, 14], [36, 34, 6], [-8, 28, 10], [-12, 8.6, 14, 1], [-32, -5, 8.5], [20, 24, 8.5], [13, -19, 8], [42, -6, 8], [22, 46, 9], [40, -42, 3.5], [-52, -22, 5], [-30, -36, 6], [-43, 31, 8], [-29, 52, 3.5], [-44, 24, 3], [15, -45, 3], [49, -14, 3]];
   const ocupado = (x, z, folga) => livres.some(l => l[3] ? (Math.abs(x - l[0]) < l[2] && Math.abs(z - l[1]) < 4) : Math.hypot(x - l[0], z - l[1]) < l[2] + folga)
     || obst.some(o => Math.hypot(x - o.x, z - o.z) < o.r + folga + 1.5);
   function arvore(x, z, s = 1, tipo = 0) {
@@ -367,7 +377,7 @@
     hemi.intensity = noite ? .42 : .78; hemi.color.set(noite ? 0xaab4ff : 0xffffff); sol.intensity = noite ? .3 : .62; sol.color.set(noite ? 0xbfd0ff : 0xfff0cc);
     ceuEstrelas.visible = noite; mar.material.color.set(noite ? 0x24509a : 0x35a3e6); estrelaMat.emissiveIntensity = noite ? 1 : .55;
     nuvens.forEach(n => n.children.forEach(c => c.material.color.set(noite ? 0x8f93c9 : 0xffffff)));
-    fala(noite ? 'Boa noite! Olha as estrelas no céu!' : 'Bom dia! O sol voltou!');
+    fala(noite ? 'Boa noite! Olha as estrelas no céu!' : 'Bom dia! O sol voltou!'); if (noite) cadT = 2.4;
   }
 
   // ---------- estrelas ----------
@@ -446,9 +456,9 @@
   const pintos = [[33, -38], [9, -46], [-47, -4]].map(([x, z]) => { const g = DEF.pinto(); g.position.set(x, 0, z); scene.add(g); return { g, segue: false, entregue: false, fase: rng() * 6 }; });
 
   // ================= avatar =================
-  const LOOK = { vestido: ['#ff5c8a', '#9b5de5', '#3a8bff', '#35b34a', '#ffb800', '#ff6b5e'], cabelo: ['#5a3a1a', '#1f1a17', '#f2c14e', '#c1502e', '#ff7ab6'],
-    pele: ['#ffd9b8', '#f1c08e', '#c98f5f', '#8a5a3a'], enfeite: ['✖', '👑', '🎀', '👒'] };
-  const visual = { vestido: 0, cabelo: 0, pele: 1, enfeite: 2 };
+  const LOOK = { vestido: ['#ff5c8a', '#9b5de5', '#3a8bff', '#35b34a', '#ffb800', '#ff6b5e', '#ffd84d'], cabelo: ['#5a3a1a', '#1f1a17', '#f2c14e', '#c1502e', '#ff7ab6'],
+    pele: ['#ffd9b8', '#f1c08e', '#c98f5f', '#8a5a3a'], enfeite: ['✖', '👑', '🎀', '👒'], asas: ['✖', '🧚'] };
+  const visual = { vestido: 0, cabelo: 0, pele: 1, enfeite: 2, asas: 0 };
   try { Object.assign(visual, JSON.parse(localStorage.getItem('mundo_visual') || '{}')); } catch (e) {}
   const mVest = new T.MeshLambertMaterial(), mVest2 = new T.MeshLambertMaterial(), mCab = new T.MeshLambertMaterial(), mPele = new T.MeshLambertMaterial();
   const av = new T.Group(), avCorpo = new T.Group(); av.add(avCorpo); scene.add(av);
@@ -468,9 +478,11 @@
     const l = enfeites[2]; [-1, 1].forEach(s => add(l, 'sphere', '#ff5c8a', [s * .2, .6, .1], [.2, .15, .1], [0, 0, s * .4])); add(l, 'sphere', '#ffd1e0', [0, .58, .13], [.09, .09, .09]);
     const h = enfeites[3]; add(h, 'cyl', '#f2d58a', [0, .46, 0], [.95, .06, .95]); add(h, 'sphere', '#f2d58a', [0, .52, 0], [.5, .36, .5]); add(h, 'cyl', '#e2694a', [0, .52, 0], [.51, .1, .51]); }
   enfeites.forEach(e => e && cabeca.add(e));
+  let asasG = null;
   function aplicaVisual() {
     mVest.color.set(LOOK.vestido[visual.vestido]); mVest2.color.set(LOOK.vestido[visual.vestido]).multiplyScalar(.8); mCab.color.set(LOOK.cabelo[visual.cabelo]); mPele.color.set(LOOK.pele[visual.pele]);
     enfeites.forEach((e, i) => { if (e) e.visible = i === visual.enfeite; });
+    if (asasG) asasG.visible = visual.asas === 1; mVest.emissive.set(visual.vestido === 6 ? 0x775500 : 0x000000);
     try { localStorage.setItem('mundo_visual', JSON.stringify(visual)); } catch (e) {}
   }
   aplicaVisual();
@@ -662,6 +674,126 @@
   $('e-numeros').addEventListener('click', () => { const segundo = escNums >= 5 && numVez++ % 2 === 0; tracar(segundo ? ['6', '7', '8', '9', '0'] : ['1', '2', '3', '4', '5'], segundo ? '' : 'N'); });
   $('e-memoria').addEventListener('click', memoria);
 
+  // ================= surpresas escondidas =================
+  const SUR = [{ id: 'bau', ic: '🧰', nome: 'o baú do tesouro' }, { id: 'coelho', ic: '🐰', nome: 'o coelhinho escondido' }, { id: 'piano', ic: '🍄', nome: 'os cogumelos musicais' },
+    { id: 'foguete', ic: '🚀', nome: 'o foguete' }, { id: 'ovo', ic: '🦕', nome: 'o dinossauro bebê' }, { id: 'danca', ic: '💃', nome: 'a pista de dança' },
+    { id: 'peixe', ic: '🐟', nome: 'o peixinho dourado' }, { id: 'cadente', ic: '🌠', nome: 'a estrela cadente' }];
+  const achadas = new Set(); let ouroLivre = false;
+  function atualizaAlbum() { $('n-sur').textContent = achadas.size; const g = $('album-grade'); g.innerHTML = '';
+    SUR.forEach(s => { const d = document.createElement('div'); d.className = 'slot' + (achadas.has(s.id) ? ' ok' : ''); d.textContent = achadas.has(s.id) ? s.ic : '?'; g.appendChild(d); }); }
+  const liberaAsas = () => { document.querySelector('#painel .linha[data-k=asas]').hidden = false; };
+  const liberaTudo = () => { ouroLivre = true; const b = document.querySelector('#painel .ouro'); if (b) b.hidden = false; };
+  function descobre(id) {
+    if (achadas.has(id)) return false; achadas.add(id); const s = SUR.find(q => q.id === id);
+    [784, 988, 1175, 1568].forEach((f, i) => tom(f, f, .22, 'triangle', .2, i * .11)); faixa('Surpresa! ' + s.ic, 2600); fala('Surpresa! Você descobriu ' + s.nome + '!', 250);
+    for (let i = 0; i < 4; i++) setTimeout(() => confete(innerWidth * (.25 + Math.random() * .5), innerHeight * (.3 + Math.random() * .3)), i * 200);
+    atualizaAlbum(); salva();
+    if (achadas.size === SUR.length) setTimeout(() => { fanfarra(); faixa('Todas as surpresas! 👗✨', 3500); fala('Você descobriu todas as surpresas! Ganhou o vestido dourado!'); liberaTudo(); }, 4500);
+    return true;
+  }
+  // asas de fada (prêmio do baú)
+  asasG = new T.Group(); asasG.position.set(0, 1.55, -.3); avCorpo.add(asasG);
+  const asaMat = new T.MeshLambertMaterial({ color: 0xffb3e6, transparent: true, opacity: .8 });
+  const asas = [-1, 1].map(s => { const a = new T.Group(); add(a, 'sphere', asaMat, [s * .5, .3, 0], [.5, .62, .04], [0, 0, -s * .5], false); add(a, 'sphere', asaMat, [s * .38, -.3, 0], [.34, .4, .04], [0, 0, s * .4], false); asasG.add(a); return a; });
+  aplicaVisual();
+  // ---------- baú do tesouro ----------
+  const BAU = { x: 40, z: -42, aberto: false, t: 0 };
+  { const g = new T.Group(); g.position.set(BAU.x, 0, BAU.z); g.rotation.y = -.5; scene.add(g);
+    add(g, 'box', '#9b6a3c', [0, .5, 0], [1.7, 1, 1.15]); add(g, 'box', '#ffc21a', [0, .55, .59], [.3, .36, .06]); [-.7, .7].forEach(x => add(g, 'box', '#ffc21a', [x, .5, 0], [.14, 1.02, 1.18]));
+    const tampa = new T.Group(); tampa.position.set(0, 1, -.57); g.add(tampa); add(tampa, 'box', '#b07a44', [0, .2, .57], [1.74, .4, 1.19]); [-.7, .7].forEach(x => add(tampa, 'box', '#ffc21a', [x, .2, .57], [.14, .42, 1.22]));
+    BAU.brilho = add(g, 'sphere', new T.MeshBasicMaterial({ color: 0xfff08a }), [0, 1, 0], [.7, .3, .42], null, false); BAU.brilho.visible = false; BAU.tampa = tampa; obst.push({ x: BAU.x, z: BAU.z, r: .9 }); }
+  function abreBau(quieto) { BAU.aberto = true; BAU.brilho.visible = true; liberaAsas(); if (quieto) return;
+    for (let i = 0; i < 3; i++) setTimeout(() => confete3d(BAU.x, 2 + i * .5, BAU.z, ['★', '✦', '●'], ['#ffc21a', '#ffe680', '#fff']), i * 250);
+    descobre('bau'); visual.asas = 1; aplicaVisual(); fala('Você ganhou asas de fada!', 3400); }
+  // ---------- coelhinho nas moitas ----------
+  const moitas = [[-44, 24], [15, -45], [49, -14]].map(([x, z]) => { const g = new T.Group(); g.position.set(x, 0, z);
+    add(g, 'sphere', '#3f9e45', [0, .7, 0], [1.2, .9, 1.1]); add(g, 'sphere', '#4fae4a', [-.8, .5, .3], [.8, .6, .8]); add(g, 'sphere', '#63c25a', [.8, .55, -.2], [.85, .65, .8]);
+    add(g, 'sphere', '#ff7ab6', [.3, 1.5, .5], [.14, .14, .14]); add(g, 'sphere', '#ff7ab6', [-.6, 1, .8], [.12, .12, .12]); scene.add(g); obst.push({ x, z, r: .9 }); return { g, x, z, f: Math.random() * 6 }; });
+  const coelho = new T.Group(), coelhoC = new T.Group(); coelho.add(coelhoC); coelho.visible = false; scene.add(coelho);
+  { add(coelhoC, 'sphere', '#ffffff', [0, .45, 0], [.42, .44, .52]); add(coelhoC, 'sphere', '#ffffff', [0, .95, .3], [.36, .34, .34]); add(coelhoC, 'sphere', '#ffffff', [0, .45, -.52], [.16, .16, .16]);
+    [-1, 1].forEach(s => { add(coelhoC, 'sphere', '#ffffff', [s * .15, 1.48, .22], [.09, .36, .07]); add(coelhoC, 'sphere', '#ffb3c8', [s * .15, 1.48, .27], [.045, .26, .03], null, false); });
+    const cab = new T.Group(); cab.position.set(0, .95, .3); coelhoC.add(cab); olhos(cab, .15, .06, .3, .055); add(cab, 'sphere', '#ff8fa8', [0, -.05, .34], [.06, .045, .04], null, false); }
+  const CO = { t: 0, m: null, px: 0, pz: 0 };
+  // ---------- cogumelos musicais ----------
+  const NOTAS = [523, 587, 659, 698, 784], cogTocados = new Set();
+  ['#ef4b4b', '#ff8c1a', '#ffcf33', '#35b34a', '#3a8bff'].forEach((c, i) => { const x = -48 + i * 2.7, z = 29 + i * 1.1; add(scene, 'cyl', '#fff6e0', [x, .4, z], [.45, .8, .45]);
+    const cap = new T.Group(); cap.position.set(x, .95, z); scene.add(cap); add(cap, 'sphere', c, [0, 0, 0], [1.15, .55, 1.15]);
+    [[.45, .3], [-.5, .1], [0, -.5], [.1, .1]].forEach(([a, b]) => add(cap, 'sphere', '#ffffff', [a, .47 - (a * a + b * b) * .3, b], [.17, .08, .17], null, false));
+    tramps.push({ x, z, lona: cap, t: 0, r: 1.15, vy: 11.5, y0: .95, cog: i }); });
+  function notaCog(tr) { const f = NOTAS[tr.cog]; tom(f, f, .5, 'triangle', .25); tom(f * 2, f * 2, .3, 'sine', .1); cogTocados.add(tr.cog); if (cogTocados.size === 5) descobre('piano'); }
+  // ---------- foguete ----------
+  const FG = { x: -52, z: -22, e: 0, t: 0, y: 0, frio: 0, som: 0 };
+  { add(scene, 'cyl', '#b9bcc6', [FG.x, .1, FG.z], [2.5, .2, 2.5], null, false); const g = new T.Group(); g.position.set(FG.x, 0, FG.z); scene.add(g); FG.g = g;
+    add(g, 'cyl', '#ffffff', [0, 2.4, 0], [.95, 3, .95]); add(g, 'cone', '#ef4b4b', [0, 4.7, 0], [.95, 1.6, .95]); add(g, 'sphere', '#7fd3f7', [0, 3, .82], [.42, .42, .2]); add(g, 'cyl', '#ef4b4b', [0, 1.05, 0], [1, .3, 1]);
+    [0, 1, 2].forEach(i => { const a = i / 3 * 6.283 + .5; add(g, 'box', '#ef4b4b', [Math.cos(a) * 1.05, .85, Math.sin(a) * 1.05], [.16, 1.5, .8], [0, -a + Math.PI / 2, 0]); });
+    FG.fogo = add(g, 'cone', new T.MeshBasicMaterial({ color: 0xff8c1a }), [0, -.2, 0], [.7, 2, .7], [Math.PI, 0, 0], false); FG.fogo.visible = false; obst.push({ x: FG.x, z: FG.z, r: 1.2 }); }
+  let paraq = false;
+  const balaoP = new T.Group(); balaoP.visible = false; av.add(balaoP); add(balaoP, 'sphere', '#ef4b4b', [0, 5.2, 0], [1.1, 1.3, 1.1]); add(balaoP, 'cyl', '#ffffff', [0, 3.7, 0], [.02, 1.8, .02], null, false);
+  // ---------- ovo misterioso e dinossauro bebê ----------
+  const OVO = { x: -29, z: 52, n: 0, frio: 0, w: 0 };
+  { const nn = new T.Mesh(new T.TorusGeometry(.95, .28, 8, 20), mat('#a87848')); nn.rotation.x = Math.PI / 2; nn.position.set(OVO.x, .25, OVO.z); scene.add(nn); }
+  const ovoG = new T.Group(); ovoG.position.set(OVO.x, .2, OVO.z); scene.add(ovoG); add(ovoG, 'sphere', '#fff3d6', [0, 1, 0], [.8, 1.05, .8]);
+  [[.5, 1.3, .5], [-.55, .9, .5], [.1, .6, .75], [-.2, 1.7, .5], [.6, .8, -.4]].forEach(([a, b, c]) => add(ovoG, 'sphere', '#6cc24a', [a, b, c], [.18, .2, .12], null, false));
+  const cascas = new T.Group(); cascas.position.set(OVO.x, .2, OVO.z); cascas.visible = false; scene.add(cascas); add(cascas, 'sphere', '#fff3d6', [0, .35, 0], [.8, .4, .8]); add(cascas, 'sphere', '#fff3d6', [1.3, .25, .4], [.55, .3, .55], [.4, 0, .9]);
+  obst.push({ x: OVO.x, z: OVO.z, r: .8 });
+  const dino = new T.Group(), dinoC = new T.Group(); dino.add(dinoC); dino.visible = false; scene.add(dino);
+  { add(dinoC, 'sphere', '#6cc24a', [0, .7, 0], [.55, .6, .72]); add(dinoC, 'sphere', '#c8ec9a', [0, .6, .22], [.4, .44, .52]);
+    [-1, 1].forEach(s => { add(dinoC, 'cyl', '#58a83e', [s * .28, .2, .05], [.16, .4, .16]); add(dinoC, 'sphere', '#6cc24a', [s * .5, .85, .35], [.1, .2, .1], [0, 0, s * .6]); });
+    add(dinoC, 'cone', '#6cc24a', [0, .55, -.95], [.3, 1, .3], [-Math.PI / 2 + .3, 0, 0]);
+    const cab = new T.Group(); cab.position.set(0, 1.42, .4); dinoC.add(cab); add(cab, 'sphere', '#6cc24a', [0, 0, 0], [.5, .46, .5]); add(cab, 'sphere', '#7fd05a', [0, -.12, .36], [.34, .24, .3]);
+    olhos(cab, .23, .12, .4, .09); [-1, 1].forEach(s => { add(cab, 'sphere', '#ff9f6b', [s * .36, -.08, .3], [.09, .07, .05], null, false); add(cab, 'sphere', '#3b2a20', [s * .1, -.08, .64], [.03, .03, .02], null, false); });
+    [[1.9, .2], [1.5, -.15], [1.05, -.45], [.75, -.75]].forEach(([y, z]) => add(dinoC, 'cone', '#ff8c1a', [0, y, z], [.1, .3, .1], [-.5, 0, 0])); }
+  function chocou(quieto) { OVO.n = 3; ovoG.visible = false; cascas.visible = true; dino.visible = true; dino.position.set(OVO.x + 1.8, 0, OVO.z);
+    if (quieto) return; tom(600, 1400, .3, 'sine', .2); confete3d(OVO.x, 1.5, OVO.z, ['✦', '♥'], ['#6cc24a', '#ffcf33']); descobre('ovo'); fala('Um dinossauro bebê! Ele vai passear com você!', 3400); }
+  // ---------- pista de dança ----------
+  const PISTA = { x: -30, z: -36, t: 0 }; let dancando = false;
+  add(scene, 'box', '#3b4a6a', [PISTA.x, .12, PISTA.z], [5.2, .2, 5.2], null, false);
+  const pisos = []; for (let i = 0; i < 9; i++) pisos.push(add(scene, 'box', new T.MeshLambertMaterial({ color: 0xffffff }), [PISTA.x + (i % 3 - 1) * 1.6, .24, PISTA.z + (Math.floor(i / 3) - 1) * 1.6], [1.45, .08, 1.45], null, false));
+  [[-2.9, -2.9], [2.9, -2.9]].forEach(([dx, dz]) => { add(scene, 'cyl', '#5a6b8a', [PISTA.x + dx, 1.6, PISTA.z + dz], [.1, 3.2, .1]); add(scene, 'sphere', '#ffcf33', [PISTA.x + dx, 3.3, PISTA.z + dz], [.4, .4, .4]); });
+  // ---------- peixinho dourado e estrela cadente ----------
+  const PX = { t: 0, frio: 0, a: 0 }; const peixe = new T.Group(); peixe.visible = false; scene.add(peixe);
+  add(peixe, 'sphere', '#ffb21c', [0, 0, 0], [.55, .32, .2]); add(peixe, 'cone', '#ff8c1a', [-.7, 0, 0], [.3, .5, .1], [0, 0, -Math.PI / 2]); add(peixe, 'sphere', '#3b2a20', [.35, .08, .16], [.05, .05, .04], null, false);
+  const cad = add(scene, 'sphere', new T.MeshBasicMaterial({ color: 0xffffff, fog: false }), [0, -80, 0], [6, .5, .5], null, false); cad.visible = false; let cadT = 0;
+  function atualizaSurpresas(dt, noLago) {
+    // baú
+    if (!BAU.aberto && dist2(pos, BAU.x, BAU.z) < 2) abreBau();
+    if (BAU.aberto && BAU.t < 1) { BAU.t = Math.min(1, BAU.t + dt * 2); BAU.tampa.rotation.x = -1.9 * BAU.t; }
+    asas[0].rotation.y = Math.sin(tempo * 9) * .5; asas[1].rotation.y = -asas[0].rotation.y;
+    // coelho
+    moitas.forEach(m => { m.g.rotation.z = Math.sin(tempo * .8 + m.f) > .7 ? Math.sin(tempo * 20) * .06 : 0;
+      if (CO.t <= 0 && dist2(pos, m.x, m.z) < 2.2) { CO.t = 5; CO.m = m; coelho.visible = true; tom(500, 950, .14, 'sine', .15); if (!descobre('coelho')) fala('Olha o coelhinho!'); } });
+    if (CO.t > 0) { CO.t -= dt; const k = 5 - CO.t, a = k * 2.3, r = Math.min(3.2, k * 3, CO.t * 3), x = CO.m.x + Math.cos(a) * r, z = CO.m.z + Math.sin(a) * r;
+      coelho.rotation.y = Math.atan2(x - CO.px, z - CO.pz); coelho.position.set(x, 0, z); CO.px = x; CO.pz = z; coelhoC.position.y = Math.abs(Math.sin(tempo * 10)) * .5; if (CO.t <= 0) coelho.visible = false; }
+    // foguete
+    FG.frio -= dt;
+    if (dist2(pos, FG.x, FG.z) > 5.5) FG.pronto = true;
+    if (FG.e === 0 && FG.pronto && FG.frio <= 0 && !dirigindo && noChao && !paraq && dist2(pos, FG.x, FG.z) < 2.4) { FG.e = 1; FG.pronto = false; FG.t = 0; destino.on = false; fala('Três, dois, um, decolar!'); [0, .7, 1.4].forEach(d => tom(440, 440, .15, 'square', .12, d)); tom(880, 880, .5, 'square', .14, 2.1); }
+    if (FG.e === 1) { FG.t += dt; travado = .2; FG.g.position.x = FG.x + Math.sin(tempo * 40) * .04; if (FG.t > 2.6) { FG.e = 2; FG.y = 0; FG.fogo.visible = true; if (!descobre('foguete')) faixa('🚀', 1200); } }
+    if (FG.e === 2) { FG.y += Math.min(22, 5 + FG.y * .9) * dt; FG.g.position.set(FG.x, FG.y, FG.z); FG.fogo.scale.y = 1.6 + Math.random() * .8;
+      if (tempo - FG.som > .12) { FG.som = tempo; tom(90 + Math.random() * 40, 60, .14, 'sawtooth', .1, 0, { tipo: 'lowpass', f: 500 }); }
+      if (FG.y > 42) { FG.e = 3; paraq = true; pos.set(FG.x, FG.y, FG.z); vel.set(0, 0, 0); fala('Uau! Olha a ilha lá de cima!'); } }
+    if (FG.e === 3) { FG.y += 28 * dt; FG.g.position.y = FG.y; if (FG.y > 120) { FG.e = 0; FG.frio = 6; FG.g.position.set(FG.x, 0, FG.z); FG.fogo.visible = false; } }
+    if (paraq && noChao) paraq = false; balaoP.visible = paraq;
+    // ovo e dinossauro
+    OVO.frio -= dt; OVO.w = Math.max(0, OVO.w - dt); ovoG.rotation.z = Math.sin(tempo * 25) * .16 * OVO.w;
+    if (OVO.n < 3 && OVO.frio <= 0 && dist2(pos, OVO.x, OVO.z) < 2.1) { OVO.n++; OVO.frio = 1.4; OVO.w = 1; tom(900, 300, .08, 'square', .15); if (OVO.n < 3) fala(['Toc, toc! Tem alguém aí?', 'O ovo está rachando!'][OVO.n - 1]); else chocou(); }
+    if (dino.visible) { const tx = Math.min(54, pos.x - Math.sin(face) * 2.8 - 1.4), tz = pos.z - Math.cos(face) * 2.8, dx = tx - dino.position.x, dz = tz - dino.position.z, d = Math.hypot(dx, dz);
+      if (d > .8) { const v = Math.min(13, d * 2.2) * dt; dino.position.x += dx / d * v; dino.position.z += dz / d * v; let k = Math.atan2(dx, dz) - dino.rotation.y; while (k > Math.PI) k -= 6.283; while (k < -Math.PI) k += 6.283; dino.rotation.y += k * Math.min(1, 8 * dt); dinoC.position.y = Math.abs(Math.sin(tempo * 10)) * .16; }
+      else dinoC.position.y = 0; }
+    // pista de dança
+    const naPista = !dirigindo && pos.y < 1 && Math.abs(pos.x - PISTA.x) < 2.5 && Math.abs(pos.z - PISTA.z) < 2.5; PISTA.t = naPista ? PISTA.t + dt : 0; dancando = PISTA.t > .7;
+    pisos.forEach((m, i) => m.material.color.setHSL((i * .13 + Math.floor(tempo * (dancando ? 5 : 1.2)) * .21) % 1, .85, .6));
+    if (dancando) { descobre('danca'); if (Math.random() < dt * 1.5) confete3d(pos.x, 3, pos.z, ['♪', '★'], ['#ff5c8a', '#ffcf33', '#5cc6ff']); }
+    // peixe
+    PX.frio -= dt;
+    if (PX.t <= 0 && PX.frio <= 0 && noLago && dist2(pos, LAGO.x, LAGO.z) < 7) { PX.t = 1.2; PX.frio = 7; PX.a = Math.random() * 6.283; splash(); peixe.visible = true; descobre('peixe'); }
+    if (PX.t > 0) { PX.t -= dt; const k = 1 - PX.t / 1.2, sx = pos.x + Math.cos(PX.a) * 2.5, sz = pos.z + Math.sin(PX.a) * 2.5; peixe.position.set(sx + Math.cos(PX.a + 1.57) * (k - .5) * 4, Math.sin(k * Math.PI) * 3, sz + Math.sin(PX.a + 1.57) * (k - .5) * 4);
+      peixe.rotation.set(0, -PX.a - 1.57, (0.5 - k) * 2.4); if (PX.t <= 0) { peixe.visible = false; tom(700, 200, .2, 'sine', .1); } }
+    // estrela cadente
+    if (cadT > 0) { cadT -= dt; if (cadT < 1.6) { if (!cad.visible) { cad.visible = true; [1568, 1976, 2349].forEach((f, i) => tom(f, f, .3, 'sine', .08, i * .12)); descobre('cadente'); }
+        const k = 1 - cadT / 1.6; cad.position.set(pos.x - 80 + 160 * k, 62 - 22 * k, pos.z - 95); cad.rotation.z = -.14; } if (cadT <= 0) cad.visible = false; }
+  }
+
   // ================= estado do jogo =================
   const pos = new T.Vector3(0, 0, 8), vel = new T.Vector3(); let noChao = true, face = 0, passo = 0, platAtual = null, check = 0, travado = 0;
   let nEstrelas = 0, nBaloes = 0, obbyFeito = false, entregues = false, rodando = false, tempo = 0;
@@ -674,7 +806,7 @@
     { ic: '🐮', fala: 'Visite todos os bichos da fazenda!', total: 6, prog: () => bichos.filter(b => b.visto && !b.fora).length, alvo: () => maisPerto(bichos.filter(b => !b.visto && !b.fora).map(b => b.g.position)) },
     { ic: '🐥', fala: 'Ache os três pintinhos e leve para a mamãe galinha!', total: 4, prog: () => pintos.filter(p => p.segue || p.entregue).length + (entregues ? 1 : 0),
       alvo: () => maisPerto(pintos.filter(p => !p.segue && !p.entregue).map(p => p.g.position)) || galinha.g.position },
-    { ic: '🎈', fala: 'Pule no trampolim e estoure três balões!', total: 3, prog: () => Math.min(nBaloes, 3), alvo: () => maisPerto(tramps.filter(t => !t.gig)) },
+    { ic: '🎈', fala: 'Pule no trampolim e estoure três balões!', total: 3, prog: () => Math.min(nBaloes, 3), alvo: () => maisPerto(tramps.filter(t => !t.gig && t.cog === undefined)) },
     { ic: '🌈', fala: 'Atravesse as plataformas coloridas até o arco-íris!', total: 1, prog: () => obbyFeito ? 1 : 0, alvo: () => pos.x < 58 ? { x: 60, z: 8 } : { x: ILHA2.x + 2, z: ILHA2.z } },
     { ic: '🥕', fala: 'Colha três cenouras na horta e leve para o jumento!', total: 3, prog: () => Math.min(nCen, 3), alvo: () => levando ? jumentoB.g.position : maisPerto(cenouras.filter(c => c.g.visible).map(c => c.g.position)) },
     { ic: '🦋', fala: 'Pegue cinco borboletas no campo de flores!', total: 5, prog: () => Math.min(nBorb, 5), alvo: () => maisPerto(borbs.filter(b => !b.pega).map(b => b.g.position)) },
@@ -694,7 +826,7 @@
   const txtM = () => { const f = MISSOES[iMissao]['fala']; return typeof f === 'function' ? f() : f; };
   const SAVE = 'mundo_save_v1';
   function salva() { try { localStorage.setItem(SAVE, JSON.stringify({ i: iMissao, est: estrelas.map(e => +e.pega), tro: !trofeu.visible, ceu: ceuFeito, nb: nBaloes,
-    vis: bichos.filter(b => b.visto).map(b => b.tipo), ent: entregues, nCen, borb: borbs.map(b => +b.pega), iArco, con: conchas.map(c => +c.pega), esc: [escLetras, escNums, escMem] })); } catch (e) {} }
+    vis: bichos.filter(b => b.visto).map(b => b.tipo), ent: entregues, nCen, borb: borbs.map(b => +b.pega), iArco, con: conchas.map(c => +c.pega), esc: [escLetras, escNums, escMem], sur: [...achadas] })); } catch (e) {} }
   function carrega() { let d = null; try { d = JSON.parse(localStorage.getItem(SAVE) || 'null'); } catch (e) {} if (!d) return; temSave = true;
     (d.est || []).forEach((v, i) => { if (v && estrelas[i]) { estrelas[i].pega = true; estrelas[i].m.visible = false; nEstrelas++; } });
     if (d.tro) { trofeu.visible = false; obbyFeito = true; nEstrelas++; } if (d.ceu) { estrelaCeu.visible = false; ceuFeito = true; nEstrelas++; }
@@ -702,9 +834,10 @@
     if (d.ent) { entregues = true; pintos.forEach((p, i) => { p.entregue = true; p.g.position.set(galinha.g.position.x + (i - 1) * 1.1, 0, galinha.g.position.z + 1.3); }); }
     nCen = d.nCen || 0; (d.borb || []).forEach((v, i) => { if (v && borbs[i]) { borbs[i].pega = true; borbs[i].g.visible = false; nBorb++; } }); iArco = d.iArco || 0;
     (d.con || []).forEach((v, i) => { if (v && conchas[i]) { conchas[i].pega = true; conchas[i].g.visible = false; nCon++; } });
+    (d.sur || []).forEach(id => achadas.add(id)); if (achadas.has('bau')) abreBau(true); if (achadas.has('ovo')) chocou(true); if (achadas.size === SUR.length) liberaTudo();
     if (d.esc) [escLetras, escNums, escMem] = d.esc;
     iMissao = Math.min(d.i || 0, MISSOES.length - 1); $('n-estrelas').textContent = nEstrelas; }
-  carrega();
+  carrega(); atualizaAlbum();
   function desenhaMissao() {
     const m = MISSOES[iMissao], p = m.prog(); $('m-icone').textContent = m.ic; const el = $('m-pontos'); el.innerHTML = '';
     if (m.total <= 6) for (let i = 0; i < m.total; i++) { const d = document.createElement('i'); if (i < p) d.className = 'ok'; el.appendChild(d); } else el.textContent = p + '/' + m.total;
@@ -787,7 +920,7 @@
     if (dirigindo) querPular = false;
     if (querPular && noChao) { vel.y = 9.6; noChao = false; pulinho(); }
     querPular = false;
-    vel.y -= 24 * dt;
+    vel.y -= 24 * dt; if (paraq && vel.y < -4.5) vel.y = -4.5;
     if (platAtual && platAtual.mov) pos.z += platAtual.dz;
     pos.x += vel.x * dt; pos.z += vel.z * dt; pos.y += vel.y * dt;
     // borda da ilha principal: parede suave, menos no píer
@@ -797,17 +930,18 @@
     const [h, em] = alturaChao(pos.x, pos.z, pos.y);
     if (pos.y <= h) {
       pos.y = h; const tr = tramps.find(t => dist2(pos, t.x, t.z) < (t.r || 1.9));
-      if (tr && vel.y < -1 && !dirigindo) { vel.y = tr.vy || 19.5; noChao = false; tr.t = 1; boing(); }
+      if (tr && !dirigindo) { vel.y = tr.vy || 19.5; noChao = false; tr.t = 1; if (tr.cog !== undefined) notaCog(tr); else boing(); }
       else { if (!noChao && vel.y < -6) passo = 0; vel.y = 0; noChao = true; }
       platAtual = em;
     } else { noChao = false; if (pos.y > h + .4) platAtual = null; }
     if (pos.y < -1.2) renasce();
+    if (FG.e === 2) { pos.set(FG.x, FG.y, FG.z); vel.set(0, 0, 0); noChao = false; }
     checks.forEach(([cx, cz], i) => { if (i > check && dist2(pos, cx, cz) < 3.5 && noChao) { check = i; plim(1000); faixa('🚩', 900); } });
     if (pos.x < 50) check = 0;
     // ---- visual do avatar ----
     const andando = Math.hypot(vel.x, vel.z);
     if (andando > .5) { const alvo = Math.atan2(vel.x, vel.z); let d = alvo - face; while (d > Math.PI) d -= 6.283; while (d < -Math.PI) d += 6.283; face += d * Math.min(1, 12 * dt); }
-    av.position.copy(pos); av.rotation.y = face;
+    av.position.copy(pos); av.rotation.y = face; av.visible = FG.e !== 2;
     if (dirigindo) { trator.position.copy(pos); trator.rotation.y = face; av.position.y += 1.2; rodas.forEach(o => o.w.rotation.x += andando * dt / o.r);
       trator.position.y += Math.sin(tempo * 30) * .012; if (andando > 1 && tempo - tMotor > .2) { tMotor = tempo; tom(75, 55, .12, 'sawtooth', .07, 0, { tipo: 'lowpass', f: 400 }); } }
     arvs.forEach(a => { const dz = a.z - pos.z, some = dz > 1.5 && dz < 18 && Math.abs(a.x - pos.x) < 2.5 + (a.larg || 0) + dz * .32, b = a.base || 1, k = some ? .2 * b : b; a.g.scale.y += (k - a.g.scale.y) * Math.min(1, 6 * dt); });
@@ -819,6 +953,7 @@
     avCorpo.position.y = dirigindo ? 0 : noChao ? Math.abs(Math.sin(passo * 2)) * .09 * Math.min(1, andando / 4) : 0;
     avCorpo.scale.y = 1 + Math.sin(tempo * 3) * .012;
     cabeca.rotation.z = Math.sin(passo * 2) * .04;
+    avCorpo.rotation.y = dancando ? tempo * 7 : 0; if (dancando) { avCorpo.position.y = Math.abs(Math.sin(tempo * 8)) * .35; bracos[0].rotation.z = -2.4; bracos[1].rotation.z = 2.4; bracos[0].rotation.x = bracos[1].rotation.x = 0; }
     if (noLago && andando > 1 && Math.random() < dt * 5) tom(700 + Math.random() * 500, 300, .12, 'sine', .05);
     // ---- rastro para os pintinhos ----
     tRastro += dt; if (tRastro > .09 && andando > .3) { tRastro = 0; rastro.push(pos.x, pos.z); if (rastro.length > 400) rastro.splice(0, 2); }
@@ -886,6 +1021,7 @@
       confete3d(c.g.position.x, 1, c.g.position.z, ['✦'], ['#ffd1e0', '#fff']); confere(); } });
     estrelaCeu.rotation.y = tempo * 1.5;
     if (estrelaCeu.visible && dist2(pos, 6, 26) < 2.6 && pos.y > 15) { estrelaCeu.visible = false; ceuFeito = true; nEstrelas++; pegouEstrela(estrelaCeu.position); fala('Você pegou a estrela do céu!', 300); }
+    atualizaSurpresas(dt, noLago);
     // ---- estações de aprender e escolinha ----
     const icM = trocando ? '' : MISSOES[iMissao].ic; estacoes.forEach(e => atualizaEstacao(e, dt, e.ic === icM));
     escFrio -= dt; if (escFrio <= 0 && !dirigindo && pos.y < 1 && dist2(pos, ESC.x, ESC.z) < 1.4) abreEscola();
@@ -934,11 +1070,14 @@
   });
   $('m-ouvir').addEventListener('click', () => fala(txtM()));
   $('bt-noite').addEventListener('click', () => { trocaNoite(); $('bt-noite').textContent = noite ? '☀️' : '🌙'; });
+  $('bt-sur').addEventListener('click', () => { $('album').hidden = !$('album').hidden; if (!$('album').hidden) fala(achadas.size ? `Você já descobriu ${achadas.size} de ${SUR.length} surpresas!` : 'Tem oito surpresas escondidas pelo mundo. Procure!'); });
+  $('album').addEventListener('click', () => { $('album').hidden = true; });
   $('bt-som').addEventListener('click', () => { musicaOn = !musicaOn; $('bt-som').style.opacity = musicaOn ? 1 : .45; });
   // painel de roupa
   document.querySelectorAll('#painel .linha[data-k]').forEach(l => { const k = l.dataset.k;
     LOOK[k].forEach((v, i) => { const b = document.createElement('button'); b.className = 'cor'; b.setAttribute('aria-label', k + ' ' + (i + 1));
-      if (k === 'enfeite') b.textContent = v; else b.style.background = v;
+      if (k === 'enfeite' || k === 'asas') b.textContent = v; else b.style.background = v;
+      if (k === 'vestido' && i === 6) { b.classList.add('ouro'); b.hidden = !ouroLivre; b.textContent = '✨'; }
       b.addEventListener('click', () => { visual[k] = i; aplicaVisual(); marca(); plim(700 + i * 60); }); l.appendChild(b); }); });
   function marca() { document.querySelectorAll('#painel .linha[data-k]').forEach(l => [...l.querySelectorAll('.cor')].forEach((b, i) => b.classList.toggle('sel', visual[l.dataset.k] === i))); }
   let voltaRodar = false;
@@ -955,7 +1094,7 @@
     chao(x, z) { return alturaChao(x, z, pos.y + 2.2)[0]; },
     est(ic) { const e = estacoes.find(q => q.ic === ic), a = e.itens[Math.min(e.alvo, e.itens.length - 1)]; return { cx: e.cx, cz: e.cz, x: a.x, z: a.z, feitos: e.feitos }; },
     missao(i) { iMissao = i; trocando = false; desenhaMissao(); },
-    estado() { const a = trocando ? null : MISSOES[iMissao].alvo(); return { m: iMissao, trocando, n: nEstrelas, nb: nBaloes, check, dirigindo, noChao, x: pos.x, y: pos.y, z: pos.z, alvo: a ? [a.x, a.z] : null, nCen, nBorb, iArco, nCon, ceuFeito, levando, destino: destino.on,
+    estado() { const a = trocando ? null : MISSOES[iMissao].alvo(); return { m: iMissao, trocando, n: nEstrelas, nb: nBaloes, check, dirigindo, noChao, x: pos.x, y: pos.y, z: pos.z, alvo: a ? [a.x, a.z] : null, nCen, nBorb, iArco, nCon, ceuFeito, levando, destino: destino.on, sur: [...achadas], paraq, fg: FG.e, dino: dino.visible,
       chaoFrente: alturaChao(pos.x + 1.3, pos.z, pos.y)[0], baloes: baloes.filter(b => b.g.visible).map(b => [b.g.position.x, b.g.position.y, b.g.position.z]), vistos: bichos.filter(b => b.visto).length, pintos: pintos.filter(p => p.segue).length, entregues, obbyFeito }; },
     pulaTroca() { if (trocando) { iMissao++; trocando = false; desenhaMissao(); } },
   };
