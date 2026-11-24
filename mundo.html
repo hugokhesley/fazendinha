@@ -73,6 +73,32 @@
   .cor { width:54px; height:54px; border-radius:50%; border:5px solid #fff; box-shadow:0 4px 0 rgba(0,0,0,.15); cursor:pointer; padding:0; font-size:26px; background:#fff; }
   .cor.sel { outline:5px solid #4fbf5a; }
   #ok { align-self:center; width:84px; height:84px; background:#4fbf5a; border-color:#fff; box-shadow:0 6px 0 #2f8f3c; font-size:40px; color:#fff; }
+  #escola { z-index:9; justify-content:flex-start; gap:0; background:
+    radial-gradient(circle at 10% 22%, #ffe3a3 0 13vw, transparent 13.1vw), radial-gradient(circle at 90% 84%, #c9ecc0 0 18vw, transparent 18.1vw),
+    radial-gradient(circle at 78% 6%, #cfe9ff 0 11vw, transparent 11.1vw), #fff6e0; }
+  #e-barra { width:100%; display:flex; align-items:center; justify-content:space-between; padding:12px 16px; }
+  #e-estrelas { font-size:38px; color:#e6d6ac; letter-spacing:2px; } #e-estrelas .on { color:#ffb800; }
+  #e-menu, #e-tracar, #e-mem { flex:1; width:100%; display:none; align-items:center; justify-content:center; gap:3vw; padding:0 4vw 6vh; min-height:0; }
+  #escola[data-tela=menu] #e-menu, #escola[data-tela=tracar] #e-tracar { display:flex; }
+  #escola[data-tela=mem] #e-mem { display:grid; grid-template-columns:repeat(4, auto); gap:2.4vh 2vw; align-content:center; }
+  .e-card { width:min(24vw,52vh); aspect-ratio:1; border:6px solid #fff; border-radius:40px; background:#ffe1e6; cursor:pointer;
+    box-shadow:0 10px 0 #ecd9ac, 0 20px 28px rgba(120,90,20,.12); display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-weight:800; font-size:clamp(14px,2.2vw,26px); color:#5a4632; padding:0; }
+  .e-card b { font-size:min(13vw,26vh); line-height:1.1; color:#9b5de5; }
+  .e-card:nth-child(2) { background:#fff0bf; } .e-card:nth-child(2) b { color:#ff8c1a; } .e-card:nth-child(3) { background:#d6ecff; }
+  #e-quadro { background:#fff; border-radius:40px; box-shadow:0 10px 0 #ecd9ac, 0 20px 28px rgba(120,90,20,.12); padding:2vh; height:min(72vh,64vw);
+    aspect-ratio:100/120; touch-action:none; }
+  #glifo { width:100%; height:100%; display:block; touch-action:none; cursor:pointer; }
+  .t-base { fill:none; stroke:#efe6d2; stroke-width:17; stroke-linecap:round; stroke-linejoin:round; }
+  .t-feito { fill:none; stroke-width:17; stroke-linecap:round; stroke-linejoin:round; }
+  .t-guia { fill:none; stroke:#a8946a; stroke-width:2.5; stroke-linecap:round; stroke-dasharray:.1 6; }
+  .t-ponto { fill:#ffcf33; stroke:#fff; stroke-width:2.5; animation:pulsa 1s ease-in-out infinite; transform-box:fill-box; transform-origin:center; pointer-events:none; }
+  #e-premio { font-size:min(20vh,16vw); line-height:1.05; width:min(34vh,28vw); text-align:center; color:#3a8bff; word-break:break-all; }
+  #e-premio.salta { animation:pop .5s cubic-bezier(.3,1.8,.5,1); }
+  .e-carta { width:min(17vw, calc(62vh / var(--lin, 2))); aspect-ratio:1; border:6px solid #fff; border-radius:24px; background:#ff8c1a; color:#fff;
+    font-size:min(9vw, calc(34vh / var(--lin, 2))); font-weight:800; cursor:pointer; box-shadow:0 6px 0 rgba(120,90,20,.2); padding:0; line-height:1; }
+  .e-carta.virada { background:#fff; } .e-carta.par { background:#e3f7d6; }
+  body.na-escola #topo, body.na-escola #pular { display:none; }
   @media (max-height:520px) { #painel { transform:scale(.8); } .bt { width:54px; height:54px; } #pular { width:96px; height:96px; } }
 </style>
 </head>
@@ -103,6 +129,17 @@
     <div class="linha" data-k="enfeite"><span>✨</span></div>
     <div class="linha" style="justify-content:center; gap:26px"><button class="bt" id="novo" aria-label="Recomeçar o jogo do início">🔄</button><button class="bt" id="ok" aria-label="Pronto">✔</button></div>
   </div>
+</div>
+
+<div id="escola" class="tela" data-tela="menu" hidden>
+  <div id="e-barra"><button class="bt" id="e-voltar" aria-label="Voltar">⬅️</button><div id="e-estrelas"></div></div>
+  <div id="e-menu">
+    <button class="e-card" id="e-letras" aria-label="Escrever letras"><b>A</b>Escrever letras</button>
+    <button class="e-card" id="e-numeros" aria-label="Escrever números"><b>1</b>Escrever números</button>
+    <button class="e-card" id="e-memoria" aria-label="Jogo da memória"><b>🃏</b>Memória</button>
+  </div>
+  <div id="e-tracar"><div id="e-quadro"><svg id="glifo" viewBox="0 0 100 120"></svg></div><div id="e-premio"></div></div>
+  <div id="e-mem"></div>
 </div>
 
 <div id="inicio" class="tela">
@@ -220,7 +257,7 @@
 
   // ---------- natureza ----------
   const obst = [], arvs = [];                       // círculos sólidos {x,z,r}
-  const livres = [[0, 8, 9], [24, -6, 13], [0, -34, 15], [-34, 12, 13], [-10, -6, 8], [-18, 15, 7], [50, 8, 12], [24, 8, 26, 1], [-28, -20, 8], [-18, 49, 14], [36, 34, 6], [-8, 28, 10], [-12, 8.6, 14, 1]];
+  const livres = [[0, 8, 9], [24, -6, 13], [0, -34, 15], [-34, 12, 13], [-10, -6, 8], [-18, 15, 7], [50, 8, 12], [24, 8, 26, 1], [-28, -20, 8], [-18, 49, 14], [36, 34, 6], [-8, 28, 10], [-12, 8.6, 14, 1], [-32, -5, 8.5], [20, 24, 8.5], [13, -19, 8], [42, -6, 8], [22, 46, 9]];
   const ocupado = (x, z, folga) => livres.some(l => l[3] ? (Math.abs(x - l[0]) < l[2] && Math.abs(z - l[1]) < 4) : Math.hypot(x - l[0], z - l[1]) < l[2] + folga)
     || obst.some(o => Math.hypot(x - o.x, z - o.z) < o.r + folga + 1.5);
   function arvore(x, z, s = 1, tipo = 0) {
@@ -266,7 +303,7 @@
     add(g, 'box', corPorta, [0, 1.3, 2.82], [1.5, 2.6, .12]); add(g, 'sphere', '#fff1d0', [.45, 1.3, 2.92], [.1, .1, .1]);
     [-2.2, 2.2].forEach(wx => { add(g, 'box', corPorta, [wx, 2.4, 2.82], [1.5, 1.5, .1]); add(g, 'box', '#bfe9fb', [wx, 2.4, 2.86], [1.1, 1.1, .1]); });
     add(g, 'box', '#c9573a', [2, 5.8, -.6], [.8, 1.8, .8]);
-    obst.push({ x, z, r: 4.3 * s });
+    obst.push({ x, z, r: 4.3 * s }); arvs.push({ g, x, z, larg: 3.5 * s, base: s });
   }
   casa(-10, -6); casa(-21, 17, .55, '#7fd3f7', '#e2694a');
   // bandeirinhas
@@ -505,6 +542,126 @@
   const estrelaCeu = new T.Mesh(estrelaGeo, estrelaMat); estrelaCeu.position.set(6, 20.4, 26); estrelaCeu.scale.setScalar(1.5); scene.add(estrelaCeu);
   let ceuFeito = false;
 
+  // ================= estações de aprender (cores, números, letras, formas) =================
+  const rnd = n => Math.floor(Math.random() * n);
+  const mistura = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const NUMN = ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+  const VOGAIS = { A: ['abelha', '🐝'], E: ['elefante', '🐘'], I: ['ilha', '🏝️'], O: ['ovo', '🥚'], U: ['uva', '🍇'] };
+  function tex(txt, bg, fg = '#fff', tam = 96) { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d');
+    g.fillStyle = bg; g.fillRect(0, 0, 128, 128); g.fillStyle = fg; g.font = `800 ${tam}px "Baloo 2", system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 64, 70); return new T.CanvasTexture(cv); }
+  const estacoes = [];
+  function estacao(ic, cx, cz, itens, ordem, pede, erra, acerta) {
+    chao('#f6ecd2', cx, cz, 6.8, .2);
+    const n = itens.length, lugar = mistura(itens.map((_, i) => i));
+    itens.forEach((it, i) => { const a = lugar[i] / n * 6.283 - Math.PI / 2; it.x = cx + Math.cos(a) * 4.5; it.z = cz + Math.sin(a) * 4.5; it.g.position.set(it.x, 0, it.z); scene.add(it.g); it.frio = 0; });
+    const e = { ic, cx, cz, itens, ordem, rodadas: 5, feitos: 0, alvo: ordem ? 0 : rnd(n), pede, erra, acerta }; estacoes.push(e); return e;
+  }
+  function atualizaEstacao(e, dt, ativa) {
+    e.itens.forEach((it, i) => { it.frio -= dt; if (it.gira) it.gira.rotation.y += dt * 1.1; if (it.flut) it.flut.position.y = it.fy + Math.sin(tempo * 2 + i) * .12;
+      if (!ativa || e.feitos >= e.rodadas || it.frio > 0) return;
+      if (dist2(pos, it.x, it.z) < 1.45 && pos.y < 1.2) { it.frio = 2.8;
+        if (i === e.alvo) { e.feitos++; plim(900 + e.feitos * 80); confete3d(it.x, 2, it.z, ['★', '✦'], ['#ffcf33', '#ff5c8a', '#5cc6ff']);
+          if (e.feitos < e.rodadas) { const ant = e.alvo; if (e.ordem) e.alvo++; else do { e.alvo = rnd(e.itens.length); } while (e.alvo === ant); fala(e.acerta(it) + ' ' + e.pede(e.itens[e.alvo]), 150); }
+          else fala(e.acerta(it), 150);
+          confere(); }
+        else { tom(300, 220, .2, 'sine', .12); fala(e.erra(it) + ' ' + e.pede(e.itens[e.alvo])); } } });
+  }
+  const artigoDe = n => (/a$/.test(n.split(' ')[0]) ? 'Essa é ' : 'Esse é ') + n + '.';
+  // cores: círculos no chão
+  const eCor = estacao('🎨', -32, -5, [['#ef4b4b', 'vermelho'], ['#ffcf33', 'amarelo'], ['#3a8bff', 'azul'], ['#35b34a', 'verde'], ['#ff7ab6', 'rosa'], ['#9b5de5', 'roxo']].map(([c, nome]) => {
+    const g = new T.Group(); add(g, 'cyl', '#ffffff', [0, .24, 0], [1.5, .08, 1.5], null, false); add(g, 'cyl', c, [0, .28, 0], [1.3, .1, 1.3], null, false); return { g, nome }; }),
+    false, it => `Pise no círculo ${it.nome}!`, it => `Esse é ${it.nome}.`, it => `Muito bem! ${it.nome[0].toUpperCase() + it.nome.slice(1)}!`);
+  // números: pisar na ordem
+  const eNum = estacao('🔢', 20, 24, [1, 2, 3, 4, 5].map((v, i) => { const g = new T.Group(), c = ['#ef4b4b', '#ff8c1a', '#35b34a', '#3a8bff', '#9b5de5'][i];
+    add(g, 'cyl', '#ffffff', [0, .24, 0], [1.5, .08, 1.5], null, false); add(g, 'cyl', c, [0, .28, 0], [1.3, .1, 1.3], null, false);
+    const pl = new T.Mesh(new T.PlaneGeometry(1.8, 1.8), new T.MeshBasicMaterial({ map: tex(String(v), c) })); pl.rotation.x = -Math.PI / 2; pl.position.y = .34; g.add(pl); return { g, v }; }),
+    true, it => `Pise no número ${NUMN[it.v]}!`, it => `Esse é o número ${NUMN[it.v]}.`, it => `Isso! Número ${NUMN[it.v]}!`);
+  // letras: cubos das vogais
+  const eLet = estacao('🔤', 13, -19, Object.keys(VOGAIS).map((L, i) => { const g = new T.Group(), c = ['#ef4b4b', '#2f9bd6', '#4fae4a', '#ff8c1a', '#9b5de5'][i];
+    add(g, 'cyl', '#ffffff', [0, .35, 0], [.7, .7, .7]); const cubo = add(g, 'box', new T.MeshLambertMaterial({ map: tex(L, c) }), [0, 1.6, 0], [1.5, 1.5, 1.5]); return { g, L, flut: cubo, fy: 1.6 }; }),
+    true, it => `Ache a letra ${it.L}!`, it => `Essa é a letra ${it.L}.`, it => `${it.L}, de ${VOGAIS[it.L][0]}!`);
+  // formas: figuras girando em pedestais
+  const eFor = (() => {
+    const tri = new T.Shape(); tri.moveTo(-.85, -.65); tri.lineTo(.85, -.65); tri.lineTo(0, .85);
+    const cor = new T.Shape(); cor.moveTo(0, -.8); cor.bezierCurveTo(-1.4, .1, -.65, 1.1, 0, .42); cor.bezierCurveTo(.65, 1.1, 1.4, .1, 0, -.8);
+    const ex = sh => { const g = new T.ExtrudeGeometry(sh, { depth: .3, bevelEnabled: true, bevelSize: .06, bevelThickness: .06, bevelSegments: 2 }); g.center(); return g; };
+    const defs = [['o círculo', new T.CylinderGeometry(.8, .8, .34, 28), '#3a8bff', [Math.PI / 2, 0, 0]], ['o quadrado', new T.BoxGeometry(1.4, 1.4, .34), '#35b34a'], ['o triângulo', ex(tri), '#ff8c1a'],
+      ['a estrela', estrelaGeo, '#ffcf33', null, .8], ['o coração', ex(cor), '#ff5c8a']];
+    return estacao('🔺', 42, -6, defs.map(([nome, geo, c, rot, esc]) => { const g = new T.Group(); add(g, 'cyl', '#ffffff', [0, .45, 0], [.7, .9, .7]);
+      const gira = new T.Group(); gira.position.y = 2.1; g.add(gira); const m = add(gira, geo, c, [0, 0, 0], esc ? [esc, esc, esc] : null, rot || null); return { g, nome, gira }; }),
+      false, it => `Toque ${it.nome.startsWith('a ') ? 'na' : 'no'} ${it.nome.slice(2)}!`, it => artigoDe(it.nome), it => `Muito bem! ${artigoDe(it.nome)}`);
+  })();
+
+  // ================= escolinha (atividades de escrever e memória) =================
+  const ESC = { x: 22, z: 49.4 };
+  casa(22, 44, .9, '#9b5de5', '#ffcf33');
+  add(scene, 'box', '#ecd9a6', [22, .15, 48], [2.2, .06, 2.4], null, false); add(scene, 'box', '#ef4b4b', [ESC.x, .2, ESC.z], [2.8, .08, 1.9], null, false);
+  [-1, 1].forEach(s => add(scene, 'cyl', '#c98d52', [26.2 + s * 1.1, 1, 48.6], [.1, 2, .1]));
+  add(scene, 'box', new T.MeshLambertMaterial({ map: tex('ABC', '#2f9bd6', '#fff', 54) }), [26.2, 2.3, 48.6], [2.8, 1.5, .14]);
+  let escFrio = 0, pausa = false, escLetras = 0, escNums = 0, escMem = 0, escSeq = 0, numVez = 0;
+  const TRACOS = {
+    A: ['M50 12 L18 108', 'M50 12 L82 108', 'M30 74 H70'], E: ['M28 12 V108', 'M28 12 H76', 'M28 60 H68', 'M28 108 H76'], I: ['M50 12 V108', 'M32 12 H68', 'M32 108 H68'],
+    O: ['M50 12 C22 12 14 36 14 60 C14 84 22 108 50 108 C78 108 86 84 86 60 C86 36 78 12 50 12'], U: ['M22 12 V70 C22 96 34 108 50 108 C66 108 78 96 78 70 V12'],
+    0: ['M50 12 C28 12 22 36 22 60 C22 84 28 108 50 108 C72 108 78 84 78 60 C78 36 72 12 50 12'], 1: ['M32 32 L54 12 V108'], 2: ['M24 34 C24 6 76 6 76 34 C76 54 40 78 24 108 H78'],
+    3: ['M26 24 C40 6 76 10 74 34 C73 50 56 58 44 58 C60 58 78 66 78 84 C78 110 38 114 24 96'], 4: ['M62 12 L20 78 H84', 'M64 12 V108'],
+    5: ['M32 12 L28 56 C42 46 78 50 78 80 C78 110 38 114 24 96', 'M32 12 H72'], 6: ['M68 14 C40 20 22 50 22 80 C22 100 36 108 50 108 C66 108 78 98 78 82 C78 66 66 58 50 58 C36 58 24 68 22 80'],
+    7: ['M22 12 H78 L40 108'], 8: ['M50 58 C30 50 26 12 50 12 C74 12 70 50 50 58 C26 68 22 108 50 108 C78 108 74 68 50 58'],
+    9: ['M78 40 C78 22 66 12 50 12 C34 12 22 24 22 40 C22 56 34 64 50 64 C66 64 78 54 78 40 V70 C78 96 62 108 34 106'] };
+  const escEl = $('escola'), glifo = $('glifo'), NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, at) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); return e; };
+  const escTela = t => { escEl.dataset.tela = t; };
+  function escEstrelas(n, total) { const el = $('e-estrelas'); el.innerHTML = ''; for (let i = 0; i < total; i++) { const s = document.createElement('span'); s.textContent = '★'; if (i < n) s.className = 'on'; el.appendChild(s); } }
+  function abreEscola() { document.body.classList.add('na-escola'); pausa = true; destino.on = false; escEl.hidden = false; escTela('menu'); escEstrelas(0, 0); plim(); fala('Bem-vinda à escolinha! O que vamos fazer?'); }
+  function fechaEscola() { document.body.classList.remove('na-escola'); escSeq++; escEl.hidden = true; pausa = false; escFrio = 2; pos.z += 2.8; vel.set(0, 0, 0); ultimo = performance.now(); try { speechSynthesis.cancel(); } catch (e) {} }
+  const voltaMenuEsc = (meu, txt) => setTimeout(() => { if (escSeq !== meu) return; fanfarra(); fala(txt); escTela('menu'); escEstrelas(0, 0); }, 2200);
+  function tracar(lista, conta) {
+    escTela('tracar'); let feitos = 0; escEstrelas(0, 5);
+    const prox = idx => {
+      const meu = ++escSeq, ch = lista[idx], ehLetra = isNaN(ch), cor = ['#ef4b4b', '#2f9bd6', '#4fae4a', '#ff8c1a', '#9b5de5'][idx % 5], PASSO = 3, premio = $('e-premio');
+      glifo.innerHTML = ''; premio.classList.remove('salta'); premio.textContent = ehLetra ? VOGAIS[ch][1] : '●'.repeat(+ch) || '○';
+      const ts = TRACOS[ch].map(d => ({ d, feito: sv('path', { d, class: 't-feito', stroke: cor }) }));
+      ts.forEach(t => glifo.appendChild(sv('path', { d: t.d, class: 't-base' })));
+      ts.forEach(t => { glifo.appendChild(t.feito); t.len = t.feito.getTotalLength(); t.pts = []; for (let l = 0; l <= t.len; l += PASSO) t.pts.push(t.feito.getPointAtLength(l)); t.pts.push(t.feito.getPointAtLength(t.len));
+        t.feito.setAttribute('stroke-dasharray', `0 ${t.len + 30}`); t.feito.style.visibility = 'hidden'; });
+      const guia = sv('path', { class: 't-guia' }), ponto = sv('circle', { class: 't-ponto', r: 6 }); glifo.appendChild(guia); glifo.appendChild(ponto);
+      let si = 0, pi = 0, fim = false;
+      const mostra = () => { const t = ts[si]; guia.setAttribute('d', t.d); const q = t.pts[Math.min(pi, t.pts.length - 1)]; ponto.setAttribute('cx', q.x); ponto.setAttribute('cy', q.y); };
+      mostra(); const nome = ehLetra ? `Letra ${ch}.` : `Número ${NUMN[+ch]}.`; fala(idx === 0 ? `${nome} Passe o dedo por cima, seguindo a bolinha!` : nome);
+      const mover = ev => {
+        if (fim || escSeq !== meu) return; if (ev.pointerType === 'mouse' && !ev.buttons) return;
+        const m = glifo.createSVGPoint(); m.x = ev.clientX; m.y = ev.clientY; const p = m.matrixTransform(glifo.getScreenCTM().inverse()); let mudou = false;
+        while (!fim) { const t = ts[si]; let achou = -1;
+          for (let k = pi; k < Math.min(pi + 5, t.pts.length); k++) if (Math.hypot(t.pts[k].x - p.x, t.pts[k].y - p.y) < 14) achou = k;
+          if (achou < 0) break; pi = achou + 1; mudou = true; t.feito.style.visibility = 'visible';
+          if (pi >= t.pts.length) { t.feito.removeAttribute('stroke-dasharray'); si++; pi = 0; plim(620 + si * 110); if (si >= ts.length) fim = true; break; }
+          t.feito.setAttribute('stroke-dasharray', `${Math.min(pi * PASSO, t.len)} ${t.len + 30}`); if (pi % 5 === 0) tom(880 + pi * 6, 880 + pi * 6, .05, 'sine', .05); }
+        if (!fim) { if (mudou) mostra(); return; }
+        guia.remove(); ponto.remove(); feitos++; escEstrelas(feitos, 5); plim(1000); premio.classList.add('salta');
+        fala('Muito bem! ' + (ehLetra ? `${ch}, de ${VOGAIS[ch][0]}!` : `Número ${NUMN[+ch]}!`), 200);
+        if (conta === 'L') escLetras = Math.max(escLetras, feitos); if (conta === 'N') escNums = Math.max(escNums, feitos); confere();
+        if (feitos >= lista.length) voltaMenuEsc(meu, 'Parabéns! Você escreveu tudo!'); else setTimeout(() => { if (escSeq === meu) prox(idx + 1); }, 2400);
+      };
+      glifo.onpointerdown = ev => { try { glifo.setPointerCapture(ev.pointerId); } catch (e) {} mover(ev); }; glifo.onpointermove = mover;
+    };
+    prox(0);
+  }
+  function memoria() {
+    escTela('mem'); const meu = ++escSeq, pares = escMem ? 6 : 4, fig = mistura(['🐮', '🐷', '🐔', '🐶', '🦆', '🦀', '🐥', '🦋', '🥕', '⭐']).slice(0, pares), g = $('e-mem');
+    g.innerHTML = ''; g.style.setProperty('--lin', pares === 4 ? 2 : 3); let aberta = null, trava = false, achados = 0; escEstrelas(0, pares);
+    mistura([...fig, ...fig]).forEach(f => { const c = document.createElement('button'); c.className = 'e-carta'; c.textContent = '?'; c.setAttribute('aria-label', 'Carta');
+      c.addEventListener('pointerdown', () => { if (trava || escSeq !== meu || c.dataset.v) return; c.dataset.v = 1; c.textContent = f; c.classList.add('virada'); plim(700);
+        if (!aberta) { aberta = { c, f }; return; } const a = aberta; aberta = null;
+        if (a.f === f) { achados++; escEstrelas(achados, pares); plim(1000); c.classList.add('par'); a.c.classList.add('par'); fala('Achou!', 100);
+          if (achados >= pares) { escMem = 1; confere(); voltaMenuEsc(meu, 'Parabéns! Você achou todos os pares!'); } }
+        else { trava = true; setTimeout(() => { [c, a.c].forEach(k => { k.textContent = '?'; delete k.dataset.v; k.classList.remove('virada'); }); trava = false; }, 1200); } });
+      g.appendChild(c); });
+    fala('Ache os pares iguais!');
+  }
+  $('e-voltar').addEventListener('click', () => { if (escEl.dataset.tela === 'menu') fechaEscola(); else { escSeq++; try { speechSynthesis.cancel(); } catch (e) {} escTela('menu'); escEstrelas(0, 0); } });
+  $('e-letras').addEventListener('click', () => tracar(['A', 'E', 'I', 'O', 'U'], 'L'));
+  $('e-numeros').addEventListener('click', () => { const segundo = escNums >= 5 && numVez++ % 2 === 0; tracar(segundo ? ['6', '7', '8', '9', '0'] : ['1', '2', '3', '4', '5'], segundo ? '' : 'N'); });
+  $('e-memoria').addEventListener('click', memoria);
+
   // ================= estado do jogo =================
   const pos = new T.Vector3(0, 0, 8), vel = new T.Vector3(); let noChao = true, face = 0, passo = 0, platAtual = null, check = 0, travado = 0;
   let nEstrelas = 0, nBaloes = 0, obbyFeito = false, entregues = false, rodando = false, tempo = 0;
@@ -524,12 +681,20 @@
     { ic: '🚜', fala: 'Suba no trator e passe por todos os arcos amarelos!', total: 6, prog: () => iArco, alvo: () => dirigindo ? arcos[Math.min(iArco, 5)] : trator.position },
     { ic: '🐚', fala: 'Vá até a praia e pegue cinco conchas!', total: 5, prog: () => Math.min(nCon, 5), alvo: () => maisPerto(conchas.filter(c => !c.pega).map(c => c.g.position)) },
     { ic: '☁️', fala: 'Pule no trampolim gigante e suba nas nuvens até a estrela do céu!', total: 1, prog: () => ceuFeito ? 1 : 0, alvo: () => pos.y < 12 ? GIG : { x: 6, z: 26 } },
+    { ic: '🎨', fala: () => 'Vá até a praça das cores. ' + eCor.pede(eCor.itens[eCor.alvo]), total: 5, prog: () => eCor.feitos, alvo: () => ({ x: eCor.cx, z: eCor.cz }) },
+    { ic: '🔢', fala: () => 'Vá até a trilha dos números. ' + eNum.pede(eNum.itens[Math.min(eNum.alvo, 4)]), total: 5, prog: () => eNum.feitos, alvo: () => ({ x: eNum.cx, z: eNum.cz }) },
+    { ic: '🔤', fala: () => 'Vá até o jardim das letras. ' + eLet.pede(eLet.itens[Math.min(eLet.alvo, 4)]), total: 5, prog: () => eLet.feitos, alvo: () => ({ x: eLet.cx, z: eLet.cz }) },
+    { ic: '🔺', fala: () => 'Vá até a praça das formas. ' + eFor.pede(eFor.itens[eFor.alvo]), total: 5, prog: () => eFor.feitos, alvo: () => ({ x: eFor.cx, z: eFor.cz }) },
+    { ic: '✏️', fala: 'Vá até a escolinha e escreva as letras A, E, I, O, U!', total: 5, prog: () => escLetras, alvo: () => ESC },
+    { ic: '📝', fala: 'Vá até a escolinha e escreva os números de um a cinco!', total: 5, prog: () => escNums, alvo: () => ESC },
+    { ic: '🃏', fala: 'Vá até a escolinha e jogue o jogo da memória!', total: 1, prog: () => escMem, alvo: () => ESC },
     { ic: '🏆', fala: 'Agora pegue todas as estrelas do mundo!', total: TOTAL, prog: () => nEstrelas, alvo: () => maisPerto(estrelas.filter(e => !e.pega).map(e => e.m.position)) },
   ];
   let iMissao = 0, trocando = false, temSave = false;
+  const txtM = () => { const f = MISSOES[iMissao]['fala']; return typeof f === 'function' ? f() : f; };
   const SAVE = 'mundo_save_v1';
   function salva() { try { localStorage.setItem(SAVE, JSON.stringify({ i: iMissao, est: estrelas.map(e => +e.pega), tro: !trofeu.visible, ceu: ceuFeito, nb: nBaloes,
-    vis: bichos.filter(b => b.visto).map(b => b.tipo), ent: entregues, nCen, borb: borbs.map(b => +b.pega), iArco, con: conchas.map(c => +c.pega) })); } catch (e) {} }
+    vis: bichos.filter(b => b.visto).map(b => b.tipo), ent: entregues, nCen, borb: borbs.map(b => +b.pega), iArco, con: conchas.map(c => +c.pega), esc: [escLetras, escNums, escMem] })); } catch (e) {} }
   function carrega() { let d = null; try { d = JSON.parse(localStorage.getItem(SAVE) || 'null'); } catch (e) {} if (!d) return; temSave = true;
     (d.est || []).forEach((v, i) => { if (v && estrelas[i]) { estrelas[i].pega = true; estrelas[i].m.visible = false; nEstrelas++; } });
     if (d.tro) { trofeu.visible = false; obbyFeito = true; nEstrelas++; } if (d.ceu) { estrelaCeu.visible = false; ceuFeito = true; nEstrelas++; }
@@ -537,6 +702,7 @@
     if (d.ent) { entregues = true; pintos.forEach((p, i) => { p.entregue = true; p.g.position.set(galinha.g.position.x + (i - 1) * 1.1, 0, galinha.g.position.z + 1.3); }); }
     nCen = d.nCen || 0; (d.borb || []).forEach((v, i) => { if (v && borbs[i]) { borbs[i].pega = true; borbs[i].g.visible = false; nBorb++; } }); iArco = d.iArco || 0;
     (d.con || []).forEach((v, i) => { if (v && conchas[i]) { conchas[i].pega = true; conchas[i].g.visible = false; nCon++; } });
+    if (d.esc) [escLetras, escNums, escMem] = d.esc;
     iMissao = Math.min(d.i || 0, MISSOES.length - 1); $('n-estrelas').textContent = nEstrelas; }
   carrega();
   function desenhaMissao() {
@@ -550,7 +716,7 @@
     trocando = true; fanfarra(); faixa(iMissao === MISSOES.length - 1 ? 'Você é a campeã do mundo! 🏆' : 'Missão completa! 🎉', 3200);
     for (let i = 0; i < 5; i++) setTimeout(() => confete(innerWidth * (.2 + Math.random() * .6), innerHeight * (.3 + Math.random() * .4)), i * 220);
     fala(iMissao === MISSOES.length - 1 ? 'Parabéns! Você pegou todas as estrelas do mundo!' : 'Missão completa! Muito bem!', 200);
-    if (iMissao < MISSOES.length - 1) setTimeout(() => { iMissao++; trocando = false; salva(); desenhaMissao(); fala(MISSOES[iMissao].fala); confere(); }, 3800);
+    if (iMissao < MISSOES.length - 1) setTimeout(() => { iMissao++; trocando = false; salva(); desenhaMissao(); fala(txtM()); confere(); }, 3800);
   }
   function confete(x, y, simb = ['★', '♥', '♪', '✦'], cores = ['#ff5c8a', '#ffcf33', '#5cc6ff', '#7ed957']) {
     for (let i = 0; i < 6; i++) { const p = document.createElement('div'); p.className = 'part'; p.textContent = simb[i % simb.length]; p.style.color = cores[i % cores.length];
@@ -644,7 +810,7 @@
     av.position.copy(pos); av.rotation.y = face;
     if (dirigindo) { trator.position.copy(pos); trator.rotation.y = face; av.position.y += 1.2; rodas.forEach(o => o.w.rotation.x += andando * dt / o.r);
       trator.position.y += Math.sin(tempo * 30) * .012; if (andando > 1 && tempo - tMotor > .2) { tMotor = tempo; tom(75, 55, .12, 'sawtooth', .07, 0, { tipo: 'lowpass', f: 400 }); } }
-    arvs.forEach(a => { const dz = a.z - pos.z, some = dz > 1.5 && dz < 18 && Math.abs(a.x - pos.x) < 2.5 + dz * .32, k = some ? .2 : 1; a.g.scale.y += (k - a.g.scale.y) * Math.min(1, 6 * dt); });
+    arvs.forEach(a => { const dz = a.z - pos.z, some = dz > 1.5 && dz < 18 && Math.abs(a.x - pos.x) < 2.5 + (a.larg || 0) + dz * .32, b = a.base || 1, k = some ? .2 * b : b; a.g.scale.y += (k - a.g.scale.y) * Math.min(1, 6 * dt); });
     passo += andando * dt * 1.5;
     const bal = noChao ? Math.sin(passo * 2) * Math.min(1, andando / 4) : .9;
     pernas[0].rotation.x = bal * .8; pernas[1].rotation.x = -bal * .8; bracos[0].rotation.x = -bal * .9; bracos[1].rotation.x = bal * .9;
@@ -720,6 +886,9 @@
       confete3d(c.g.position.x, 1, c.g.position.z, ['✦'], ['#ffd1e0', '#fff']); confere(); } });
     estrelaCeu.rotation.y = tempo * 1.5;
     if (estrelaCeu.visible && dist2(pos, 6, 26) < 2.6 && pos.y > 15) { estrelaCeu.visible = false; ceuFeito = true; nEstrelas++; pegouEstrela(estrelaCeu.position); fala('Você pegou a estrela do céu!', 300); }
+    // ---- estações de aprender e escolinha ----
+    const icM = trocando ? '' : MISSOES[iMissao].ic; estacoes.forEach(e => atualizaEstacao(e, dt, e.ic === icM));
+    escFrio -= dt; if (escFrio <= 0 && !dirigindo && pos.y < 1 && dist2(pos, ESC.x, ESC.z) < 1.4) abreEscola();
     // ---- seta, farol, nuvens, mar ----
     const alvo = trocando ? null : MISSOES[iMissao].alvo();
     if (alvo) { const d = dist2(pos, alvo.x, alvo.z); farol.visible = true; farol.position.set(alvo.x, 20, alvo.z); farol.material.opacity = .2 + Math.sin(tempo * 3) * .08;
@@ -745,12 +914,12 @@
   let ultimo = performance.now(), vestindo = false;
   function quadro(agora) {
     const dt = Math.min(.05, (agora - ultimo) / 1000); ultimo = agora;
-    if (rodando) atualiza(dt);
+    if (rodando) { if (!pausa) atualiza(dt); }
     else if (vestindo) { tempo += dt; av.position.copy(pos); av.rotation.y = Math.sin(tempo * 1.1) * .7; farol.visible = seta.visible = false;
       const lado = innerWidth > innerHeight ? 2.4 : 0; camera.position.set(pos.x + lado, pos.y + 2.6, pos.z + 7.5); camera.lookAt(pos.x + lado, pos.y + 1.5, pos.z); sol.position.set(pos.x + 22, 38, pos.z + 16); sol.target.position.set(pos.x, 0, pos.z); }
     else { tempo += dt; const a = tempo * .12; camera.position.set(Math.sin(a) * 34, 16, 8 + Math.cos(a) * 34); camera.lookAt(0, 2, 0); sol.position.set(22, 38, 24); sol.target.position.set(0, 0, 0);
       estrelas.forEach((e, i) => { e.m.rotation.y = tempo * 2 + i; }); av.position.copy(pos); farol.visible = seta.visible = false; }
-    if (!window.__semRender) renderer.render(scene, camera);
+    if (!window.__semRender && !pausa) renderer.render(scene, camera);
     requestAnimationFrame(quadro);
   }
   requestAnimationFrame(quadro);
@@ -761,9 +930,9 @@
     try { ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); } catch (e) {}
     telaCheia(); const ini = $('inicio'); ini.style.opacity = 0; setTimeout(() => ini.hidden = true, 500);
     rodando = true; document.body.classList.add('jogando'); ultimo = performance.now(); fanfarra();
-    fala((temSave ? 'Bem-vinda de volta! ' : 'Bem-vinda ao Mundo da Fazendinha! ') + MISSOES[iMissao].fala, 600); confere();
+    fala((temSave ? 'Bem-vinda de volta! ' : 'Bem-vinda ao Mundo da Fazendinha! ') + txtM(), 600); confere();
   });
-  $('m-ouvir').addEventListener('click', () => fala(MISSOES[iMissao].fala));
+  $('m-ouvir').addEventListener('click', () => fala(txtM()));
   $('bt-noite').addEventListener('click', () => { trocaNoite(); $('bt-noite').textContent = noite ? '☀️' : '🌙'; });
   $('bt-som').addEventListener('click', () => { musicaOn = !musicaOn; $('bt-som').style.opacity = musicaOn ? 1 : .45; });
   // painel de roupa
@@ -784,6 +953,8 @@
     toque(x, z) { destino.on = true; destino.id = null; destino.x = x; destino.z = z; destino.parado = 0; },
     livre(n) { for (let i = 0; i < n; i++) atualiza(1 / 60); },
     chao(x, z) { return alturaChao(x, z, pos.y + 2.2)[0]; },
+    est(ic) { const e = estacoes.find(q => q.ic === ic), a = e.itens[Math.min(e.alvo, e.itens.length - 1)]; return { cx: e.cx, cz: e.cz, x: a.x, z: a.z, feitos: e.feitos }; },
+    missao(i) { iMissao = i; trocando = false; desenhaMissao(); },
     estado() { const a = trocando ? null : MISSOES[iMissao].alvo(); return { m: iMissao, trocando, n: nEstrelas, nb: nBaloes, check, dirigindo, noChao, x: pos.x, y: pos.y, z: pos.z, alvo: a ? [a.x, a.z] : null, nCen, nBorb, iArco, nCon, ceuFeito, levando, destino: destino.on,
       chaoFrente: alturaChao(pos.x + 1.3, pos.z, pos.y)[0], baloes: baloes.filter(b => b.g.visible).map(b => [b.g.position.x, b.g.position.y, b.g.position.z]), vistos: bichos.filter(b => b.visto).length, pintos: pintos.filter(p => p.segue).length, entregues, obbyFeito }; },
     pulaTroca() { if (trocando) { iMissao++; trocando = false; desenhaMissao(); } },
