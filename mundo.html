@@ -49,6 +49,7 @@
     text-shadow:0 2px 0 rgba(0,0,0,.15); }
   @keyframes sobe { from{transform:translate(-50%,-50%) scale(.4); opacity:1}
     to{transform:translate(calc(-50% + var(--dx)), calc(-50% - 150px)) scale(1.25); opacity:0} }
+  #escuro { position:fixed; inset:0; background:#0a1040; opacity:0; pointer-events:none; z-index:5; transition:opacity 1s; }
   #faixa { position:fixed; left:50%; top:24%; transform:translate(-50%,-50%) scale(0); z-index:7; pointer-events:none;
     background:#fff; border-radius:40px; padding:10px 34px; font-weight:800; font-size:clamp(28px,5vw,54px); color:#f08a1c;
     box-shadow:0 8px 0 rgba(0,0,0,.14); transition:transform .4s cubic-bezier(.3,1.6,.5,1); white-space:nowrap; }
@@ -127,6 +128,7 @@
   <div id="estrelas">⭐ <span id="n-estrelas">0</span></div>
 </div>
 <button id="pular" aria-label="Pular"><svg width="56%" viewBox="0 0 100 100"><path d="M50 14 L88 58 H64 V86 H36 V58 H12 Z" fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"/></svg></button>
+<div id="escuro"></div>
 <div id="faixa"></div>
 <div id="album" hidden><div id="album-grade"></div></div>
 
@@ -176,9 +178,9 @@
     } catch (e) {}
   }
   try { escolheVoz(); speechSynthesis.onvoiceschanged = escolheVoz; } catch (e) {}
-  function fala(txt, atraso = 0) {
+  function fala(txt, atraso = 0, tomVoz = 0) {
     setTimeout(() => { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(txt); u.lang = 'pt-BR'; if (vozPt) u.voice = vozPt;
-      u.rate = .9; u.pitch = 1.08; speechSynthesis.speak(u); } catch (e) {} }, atraso);
+      u.rate = .9; u.pitch = tomVoz || 1.08; speechSynthesis.speak(u); } catch (e) {} }, atraso);
   }
   function tom(f1, f2, dur, tipo = 'sine', vol = .2, delay = 0, filtro = null) {
     if (!ctx) return;
@@ -262,12 +264,12 @@
   for (let i = 0; i < 26; i++) { const a = rng() * 6.283, d = rng() * (R - 10); chao(i % 2 ? '#8ad865' : '#72c44f', Math.cos(a) * d, Math.sin(a) * d, 4 + rng() * 6, .03 + i * .004); }
   const caminho = (x1, z1, x2, z2, w = 3.2) => { const dx = x2 - x1, dz = z2 - z1, L = Math.hypot(dx, dz);
     const m = add(scene, 'box', '#ecd9a6', [(x1 + x2) / 2, .14, (z1 + z2) / 2], [w, .05, L + w * .6], [0, Math.atan2(dx, dz), 0], false); return m; };
-  caminho(0, 8, 0, -22); caminho(0, 8, 46, 8); caminho(0, 8, -30, 9); caminho(0, 6, 15, -5); caminho(-2, 9, -15, 13);
+  caminho(-30, 9, -61, 2.5); caminho(0, 8, 0, -22); caminho(0, 8, 46, 8); caminho(0, 8, -30, 9); caminho(0, 6, 15, -5); caminho(-2, 9, -15, 13);
   chao('#ecd9a6', 0, 8, 5.5, .175);
 
   // ---------- natureza ----------
   const obst = [], arvs = [];                       // círculos sólidos {x,z,r}
-  const livres = [[0, 8, 9], [24, -6, 13], [0, -34, 15], [-34, 12, 13], [-10, -6, 8], [-18, 15, 7], [50, 8, 12], [24, 8, 26, 1], [-28, -20, 8], [-18, 49, 14], [36, 34, 6], [-8, 28, 10], [-12, 8.6, 14, 1], [-32, -5, 8.5], [20, 24, 8.5], [13, -19, 8], [42, -6, 8], [22, 46, 9], [40, -42, 3.5], [-52, -22, 5], [-30, -36, 6], [-43, 31, 8], [-29, 52, 3.5], [-44, 24, 3], [15, -45, 3], [49, -14, 3]];
+  const livres = [[0, 8, 9], [24, -6, 13], [0, -34, 15], [-34, 12, 13], [-10, -6, 8], [-18, 15, 7], [50, 8, 12], [24, 8, 26, 1], [-28, -20, 8], [-18, 49, 14], [36, 34, 6], [-8, 28, 10], [-12, 8.6, 14, 1], [-32, -5, 8.5], [20, 24, 8.5], [13, -19, 8], [42, -6, 8], [22, 46, 9], [40, -42, 3.5], [-52, -22, 5], [-30, -36, 6], [-43, 31, 8], [-29, 52, 3.5], [-44, 24, 3], [15, -45, 3], [49, -14, 3], [-50, 3, 13, 1], [33, 18, 8], [-10, 2, 4]];
   const ocupado = (x, z, folga) => livres.some(l => l[3] ? (Math.abs(x - l[0]) < l[2] && Math.abs(z - l[1]) < 4) : Math.hypot(x - l[0], z - l[1]) < l[2] + folga)
     || obst.some(o => Math.hypot(x - o.x, z - o.z) < o.r + folga + 1.5);
   function arvore(x, z, s = 1, tipo = 0) {
@@ -315,10 +317,10 @@
     add(g, 'box', '#c9573a', [2, 5.8, -.6], [.8, 1.8, .8]);
     obst.push({ x, z, r: 4.3 * s }); arvs.push({ g, x, z, larg: 3.5 * s, base: s });
   }
-  casa(-10, -6); casa(-21, 17, .55, '#7fd3f7', '#e2694a');
+  casa(-10, -6, 1.4); casa(-21, 17, .55, '#7fd3f7', '#e2694a');
   // bandeirinhas
   { const tri = new T.Shape(); tri.moveTo(-.38, 0); tri.lineTo(.38, 0); tri.lineTo(0, -.8); const tg = new T.ShapeGeometry(tri);
-    const a = new T.Vector3(-6.6, 4.3, -3.2), b = new T.Vector3(4, 5.2, 2), cs = ['#ef4b4b', '#ffcf33', '#2f9bd6', '#4fae4a', '#ff7ab6', '#ff8c1a'];
+    const a = new T.Vector3(-5.2, 5.9, -2.2), b = new T.Vector3(4, 5.2, 2), cs = ['#ef4b4b', '#ffcf33', '#2f9bd6', '#4fae4a', '#ff7ab6', '#ff8c1a'];
     add(scene, 'cyl', '#c98d52', [4, 2.6, 2], [.16, 5.2, .16]); add(scene, 'sphere', '#ffcf33', [4, 5.35, 2], [.3, .3, .3]);
     for (let i = 0; i < 12; i++) { const t = (i + .5) / 12, p = a.clone().lerp(b, t); p.y -= Math.sin(t * Math.PI) * 1.1;
       const m = new T.Mesh(tg, new T.MeshLambertMaterial({ color: cs[i % cs.length], side: T.DoubleSide })); m.position.copy(p); m.rotation.y = Math.atan2(b.x - a.x, b.z - a.z) + Math.PI / 2; scene.add(m); } }
@@ -446,8 +448,8 @@
     pato: () => ave({ s: 1, cor: '#ffd84d', cor2: '#f7c22e', bw: .72, bh: .5, bl: .95, hr: .48, cy: .62, cz: .62, bico: 'pato', nada: true }),
     pinto: () => ave({ s: .5, cor: '#ffd84d', cor2: '#f2b92a', bw: .72, bh: .72, bl: .72, cy: .1, cz: .05, topete: true }),
   };
-  const ARTIGO = { vaca: 'a vaca', jumento: 'o jumento', porco: 'o porquinho', cachorro: 'o cachorro caramelo', galinha: 'a galinha', pato: 'o pato' };
-  const FRASES = { vaca: 'Muuu! Eu sou a vaca!', jumento: 'Ió, ió! Eu sou o jumento!', porco: 'Óinc, óinc! Eu sou o porquinho!', cachorro: 'Au, au! Eu sou o cachorro caramelo!', galinha: 'Có, có! Eu sou a galinha!', pato: 'Quá, quá! Eu sou o pato!' };
+  const ARTIGO = { vaca: 'a vaca', jumento: 'o jumento', porco: 'o porquinho', cachorro: 'o Miguel', galinha: 'a galinha', pato: 'o pato' };
+  const FRASES = { vaca: 'Muuu! Eu sou a vaca!', jumento: 'Ió, ió! Eu sou o jumento!', porco: 'Óinc, óinc! Eu sou o porquinho!', cachorro: 'Au, au! Eu sou o Miguel!', galinha: 'Có, có! Eu sou a galinha!', pato: 'Quá, quá! Eu sou o pato!' };
   const bichos = [];
   function poe(tipo, x, z, raio, vel = 1.2) { const g = DEF[tipo](); g.position.set(x, 0, z); scene.add(g);
     const b = { tipo, g, casa: new T.Vector3(x, 0, z), raio, vel, alvo: new T.Vector3(x, 0, z), espera: rng() * 3, frio: 0, pulo: 0, visto: false, fase: rng() * 6 }; bichos.push(b); return b; }
@@ -469,7 +471,11 @@
   const cabeca = new T.Group(); cabeca.position.set(0, 2.08, 0); avCorpo.add(cabeca);
   add(cabeca, 'sphere', mPele, [0, 0, 0], [.6, .57, .56]);
   add(cabeca, 'sphere', mCab, [0, .1, -.1], [.64, .58, .58]); add(cabeca, 'sphere', mCab, [0, .34, .2], [.5, .26, .34]);
-  [-1, 1].forEach(s => add(cabeca, 'sphere', mCab, [s * .56, .42, -.08], [.26, .26, .26]));
+  const penteados = [0, 1, 2, 3].map(() => { const g = new T.Group(); cabeca.add(g); return g; });
+  [-1, 1].forEach(s => add(penteados[0], 'sphere', mCab, [s * .56, .42, -.08], [.26, .26, .26]));
+  [-1, 1].forEach(s => { add(penteados[1], 'sphere', mCab, [s * .68, -.18, -.05], [.17, .44, .17], [0, 0, s * .25]); add(penteados[1], 'sphere', '#ff5c8a', [s * .6, .2, -.05], [.11, .11, .11]); });
+  add(penteados[2], 'sphere', mCab, [0, .3, -.62], [.2, .2, .2]); add(penteados[2], 'sphere', mCab, [0, -.15, -.8], [.17, .5, .17], [.35, 0, 0]); add(penteados[2], 'sphere', '#ffcf33', [0, .27, -.6], [.23, .1, .23]);
+  [0, 1, 2, 3].forEach(i => add(penteados[3], 'sphere', mCab, [0, -.05 - i * .3, -.6 - i * .03], [.2 - i * .02, .2, .2 - i * .02])); add(penteados[3], 'sphere', '#9b5de5', [0, -1.2, -.7], [.12, .12, .12]);
   olhos(cabeca, .21, -.02, .5, .085);
   [-1, 1].forEach(s => add(cabeca, 'sphere', '#ff8fa8', [s * .37, -.17, .42], [.11, .075, .05], null, false));
   { const m = new T.Mesh(new T.TorusGeometry(.12, .028, 8, 14, Math.PI), mat('#b5483a')); m.position.set(0, -.2, .53); m.rotation.z = Math.PI; cabeca.add(m); }
@@ -482,6 +488,7 @@
   function aplicaVisual() {
     mVest.color.set(LOOK.vestido[visual.vestido]); mVest2.color.set(LOOK.vestido[visual.vestido]).multiplyScalar(.8); mCab.color.set(LOOK.cabelo[visual.cabelo]); mPele.color.set(LOOK.pele[visual.pele]);
     enfeites.forEach((e, i) => { if (e) e.visible = i === visual.enfeite; });
+    penteados.forEach((g, i) => { g.visible = i === (visual.pent || 0); });
     if (asasG) asasG.visible = visual.asas === 1; mVest.emissive.set(visual.vestido === 6 ? 0x775500 : 0x000000);
     try { localStorage.setItem('mundo_visual', JSON.stringify(visual)); } catch (e) {}
   }
@@ -794,6 +801,154 @@
         const k = 1 - cadT / 1.6; cad.position.set(pos.x - 80 + 160 * k, 62 - 22 * k, pos.z - 95); cad.rotation.z = -.14; } if (cadT <= 0) cad.visible = false; }
   }
 
+  // ================= interiores: casa e loja de chocolate =================
+  const INT = { casa: { z: 400, w: 20, mat: [-10, 1.3], ent: [0, 403.2], sai: [0, 405.5] }, loja: { z: 460, w: 10, mat: [33, 21.2], ent: [0, 463.2], sai: [0, 465.5] } };
+  let dentro = null, portaFrio = 0, sono = 0, sentado = 0, tvOn = 0, nBandeja = 0, nComidos = 0, comeFrio = 0, disseLoja = 0;
+  const rotina = new Set(), COISAS = [];
+  const coisa = (int, x, z, r, espera, fn) => COISAS.push({ int, x, z, r, espera, frio: 0, fn });
+  const narr = (t, a) => fala(t, a || 0);
+  const chuva = (x, y, z, simb, cores, n = 4, passo = 280) => { for (let i = 0; i < n; i++) setTimeout(() => confete3d(x, y, z, simb, cores), i * passo); };
+  const escuro = $('escuro');
+  // ---------- estrutura comum: piso, paredes, porta de saída ----------
+  function sala(I, comodos, alturaParede = 9) {
+    add(scene, 'box', '#3d2f26', [0, -.3, I.z], [I.w * 2 + 30, .4, 44], null, false);
+    comodos.forEach(([cx, larg, piso, parede]) => { add(scene, 'box', piso, [cx, .02, I.z], [larg, .1, 12], null, false); add(scene, 'box', parede, [cx, alturaParede / 2, I.z - 6.2], [larg, alturaParede, .4], null, false); });
+    add(scene, 'box', '#ffffff', [0, .3, I.z - 5.95], [I.w * 2, .5, .3], null, false);
+    [-I.w, I.w].forEach(x => add(scene, 'box', '#f2e6d0', [x + Math.sign(x) * .2, alturaParede / 2, I.z], [.4, alturaParede, 12.4], null, false));
+    [-1.5, 1.5].forEach(x => add(scene, 'cyl', '#c98d52', [x, 1.3, I.z + 6], [.14, 2.6, .14])); add(scene, 'box', '#c98d52', [0, 2.7, I.z + 6], [3.4, .25, .3]);
+    add(scene, 'box', '#ef4b4b', [I.sai[0], .1, I.sai[1]], [2.6, .08, 1.3], null, false);
+  }
+  const pintura = (x, z, c) => { add(scene, 'box', '#ffffff', [x, 4.4, z], [1.7, 1.4, .1], null, false); add(scene, 'box', c, [x, 4.4, z + .04], [1.4, 1.1, .1], null, false); };
+  const janela = (x, z) => { add(scene, 'box', '#ffffff', [x, 4.2, z], [2.4, 2.2, .12], null, false); add(scene, 'box', '#bfe9fb', [x, 4.2, z + .04], [2.1, 1.9, .12], null, false); add(scene, 'box', '#ffffff', [x, 4.2, z + .08], [.1, 1.9, .12], null, false); };
+
+  // =============== CASA ===============
+  { const Z = 400, F = Z - 6;                                   // F = parede do fundo
+    add(scene, 'box', '#ef4b4b', [INT.casa.mat[0], .2, INT.casa.mat[1]], [2.8, .08, 1.7], null, false);
+    sala(INT.casa, [[-15, 10, '#f3d6b3', '#ffd6e4'], [-5, 10, '#d3ecf6', '#bfe3f2'], [5, 10, '#fbe9c6', '#ffe9a8'], [15, 10, '#ecd7b4', '#d6ecc9']]);
+    [-10, 0, 10].forEach(x => { add(scene, 'box', '#f7efe0', [x, 1.8, Z - 3.1], [.35, 3.6, 5.8]); for (let z = Z - 5.6; z < Z; z += 1) obst.push({ x, z, r: .45 }); });
+    // ----- quarto -----
+    add(scene, 'box', '#c98d52', [-16.5, .35, F + 2.7], [3.4, .5, 5]); add(scene, 'box', '#ffffff', [-16.5, .75, F + 2.7], [3.1, .35, 4.7]); add(scene, 'box', '#ff7ab6', [-16.5, .97, F + 3.4], [3.16, .16, 3.2]);
+    add(scene, 'sphere', '#ffffff', [-16.5, 1.05, F + 1], [1, .3, .6]); add(scene, 'box', '#c98d52', [-16.5, 1.3, F + .4], [3.4, 1.9, .3]);
+    obst.push({ x: -16.5, z: F + 1.6, r: 1.7 }, { x: -16.5, z: F + 3.9, r: 1.7 });
+    add(scene, 'box', '#dfa869', [-13.6, .5, F + .9], [1.1, 1, 1.1]); add(scene, 'cyl', '#ffffff', [-13.6, 1.3, F + .9], [.08, .6, .08]); add(scene, 'cone', new T.MeshBasicMaterial({ color: 0xffe680 }), [-13.6, 1.8, F + .9], [.45, .6, .45], null, false);
+    add(scene, 'box', '#b98a52', [-11.6, 2, F + .9], [2.2, 4, 1.2]); add(scene, 'box', '#8a6a44', [-11.6, 2, F + 1.52], [.06, 3.8, .04], null, false); [-.25, .25].forEach(k => add(scene, 'sphere', '#ffcf33', [-11.6 + k, 2, F + 1.56], [.08, .08, .08], null, false));
+    obst.push({ x: -11.6, z: F + .9, r: 1.15 });
+    chao('#9b5de5', -14.5, Z + 1.5, 2.2, .09); chao('#c8a8f0', -14.5, Z + 1.5, 1.5, .1); janela(-13.2, F + .25); pintura(-18, F + .25, '#ffcf33');
+    { const u = new T.Group(); u.position.set(-18.2, 0, Z + 2.2); u.rotation.y = .5; scene.add(u); add(u, 'sphere', '#b07a44', [0, .55, 0], [.5, .55, .45]); add(u, 'sphere', '#b07a44', [0, 1.25, 0], [.42, .4, .4]); add(u, 'sphere', '#e8c9a0', [0, 1.15, .32], [.2, .16, .14]);
+      [-1, 1].forEach(s => { add(u, 'sphere', '#b07a44', [s * .32, 1.6, 0], [.15, .15, .1]); add(u, 'sphere', '#b07a44', [s * .5, .7, .1], [.16, .3, .16], [0, 0, s * .6]); add(u, 'sphere', '#b07a44', [s * .25, .15, .3], [.2, .16, .28]); });
+      const c = new T.Group(); c.position.set(0, 1.25, 0); u.add(c); olhos(c, .15, .08, .34, .05); add(c, 'sphere', '#3b2a20', [0, -.06, .44], [.06, .05, .04], null, false); INT.casa.urso = u; }
+    [['#ef4b4b', 0, 0], ['#3a8bff', .75, 0], ['#ffcf33', .38, .7], ['#35b34a', 1.5, 0]].forEach(([c, dx, dy]) => add(scene, 'box', c, [-12.4 + dx, .36 + dy, Z + 3.4], [.7, .7, .7]));
+    // ----- banheiro -----
+    add(scene, 'box', '#ffffff', [-8.2, .1, F + 1.7], [2.5, .2, 2.5], null, false); add(scene, 'cyl', '#b9bcc6', [-9.3, 2.1, F + .7], [.07, 4.2, .07]); add(scene, 'cyl', '#b9bcc6', [-8.85, 4.1, F + 1], [.06, 1.1, .06], [0, 0, Math.PI / 2.4]); add(scene, 'cyl', '#b9bcc6', [-8.4, 3.95, F + 1.3], [.4, .12, .4]);
+    add(scene, 'sphere', '#ffd84d', [-7.4, .38, F + 2.3], [.26, .22, .3]); add(scene, 'sphere', '#ffd84d', [-7.4, .62, F + 2.45], [.17, .17, .17]); add(scene, 'sphere', '#ff8c1a', [-7.4, .6, F + 2.62], [.09, .05, .1]);
+    add(scene, 'box', '#ffffff', [-4.6, .6, F + .9], [1.9, 1.2, 1.1]); add(scene, 'sphere', '#bfe9fb', [-4.6, 1.2, F + .95], [.65, .12, .4], null, false); add(scene, 'cyl', '#b9bcc6', [-4.6, 1.45, F + .55], [.06, .5, .06]);
+    add(scene, 'box', '#ffffff', [-4.6, 3, F + .22], [1.9, 1.9, .1], null, false); add(scene, 'box', '#d8f2fb', [-4.6, 3, F + .26], [1.6, 1.6, .1], null, false); add(scene, 'cyl', '#ff7ab6', [-3.9, 1.4, F + .9], [.1, .35, .1]); obst.push({ x: -4.6, z: F + .9, r: 1.05 });
+    add(scene, 'cyl', '#ffffff', [-1.7, .4, F + 1.3], [.55, .8, .55]); add(scene, 'cyl', '#e8f2f7', [-1.7, .83, F + 1.3], [.5, .08, .5]); add(scene, 'box', '#ffffff', [-1.7, 1.15, F + .6], [1.1, 1.1, .5]); add(scene, 'sphere', '#b9bcc6', [-1.2, 1.75, F + .6], [.1, .06, .1]); obst.push({ x: -1.7, z: F + 1, r: .85 });
+    add(scene, 'box', '#3a8bff', [-5, .09, Z - 1.5], [2.6, .06, 1.6], null, false); pintura(-1.6, F + .25, '#7fd3f7');
+    // ----- cozinha -----
+    add(scene, 'box', '#ffffff', [3.2, .6, F + .95], [5.8, 1.2, 1.3]); add(scene, 'box', '#c98d52', [3.2, 1.23, F + .95], [5.9, .08, 1.4]); add(scene, 'box', '#2f3440', [1.6, 1.29, F + .95], [1.5, .05, 1.1], null, false);
+    [-.35, .35].forEach(k => add(scene, 'cyl', '#ef4b4b', [1.6 + k, 1.33, F + .95], [.26, .03, .26], null, false)); add(scene, 'cyl', '#b9bcc6', [1.25, 1.55, F + .95], [.3, .4, .3]); add(scene, 'box', '#2f3440', [1.75, 1.6, F + .95], [.5, .07, .08]);
+    add(scene, 'sphere', '#bfe9fb', [4.4, 1.26, F + .95], [.6, .1, .4], null, false); add(scene, 'cyl', '#b9bcc6', [4.4, 1.5, F + .55], [.05, .5, .05]); [1.2, 3.1, 5].forEach(x => obst.push({ x, z: F + .95, r: .95 }));
+    [[1.6, '#ffffff'], [3.4, '#ffe9a8'], [5.2, '#ffffff']].forEach(([x, c]) => add(scene, 'box', c, [x, 4.6, F + .7], [1.6, 1.5, .8]));
+    add(scene, 'box', '#f2f5f7', [8.4, 2, F + .95], [1.8, 4, 1.4]); obst.push({ x: 8.4, z: F + .95, r: 1.1 });
+    { const p = new T.Group(); p.position.set(7.5, 2, F + 1.67); scene.add(p); add(p, 'box', '#ffffff', [.9, 0, .05], [1.8, 3.96, .12]); add(p, 'box', '#b9bcc6', [1.5, .3, .15], [.08, 1.2, .08]); INT.casa.porta = p;
+      [['#ef4b4b', 2.9], ['#ffcf33', 2.1], ['#35b34a', 1.3]].forEach(([c, y]) => add(scene, 'sphere', c, [8.4, y, F + 1.2], [.22, .22, .22], null, false)); }
+    add(scene, 'cyl', '#dfa869', [6, 1, Z + .8], [1.5, .14, 1.5]); add(scene, 'cyl', '#c98d52', [6, .5, Z + .8], [.22, 1, .22]); obst.push({ x: 6, z: Z + .8, r: 1.5 });
+    [[-1.9, 0], [1.9, 0]].forEach(([dx]) => { add(scene, 'box', '#ff8c1a', [6 + dx, .55, Z + .8], [.8, .14, .8]); add(scene, 'box', '#ff8c1a', [6 + dx * 1.2, 1.1, Z + .8], [.12, 1.2, .8]); });
+    add(scene, 'cyl', '#ffffff', [6, 1.1, Z + .8], [.5, .05, .5]); add(scene, 'sphere', '#ef4b4b', [5.85, 1.3, Z + .8], [.2, .2, .2]); add(scene, 'sphere', '#ffcf33', [6.2, 1.26, Z + .9], [.17, .26, .17], [0, 0, .8]); janela(6.6, F + .25);
+    // ----- sala -----
+    add(scene, 'box', '#5c6bc0', [15, .5, F + 1.3], [4.4, .7, 1.5]); add(scene, 'box', '#4a58a8', [15, 1.2, F + .7], [4.4, 1.5, .4]); [-2.3, 2.3].forEach(k => add(scene, 'box', '#4a58a8', [15 + k, .85, F + 1.3], [.4, 1.1, 1.5]));
+    [-1, 1].forEach(k => add(scene, 'sphere', k < 0 ? '#ffcf33' : '#ff7ab6', [15 + k * 1.3, 1.05, F + 1.15], [.5, .4, .3])); obst.push({ x: 13.8, z: F + 1.2, r: 1.05 }, { x: 16.2, z: F + 1.2, r: 1.05 });
+    add(scene, 'box', '#8a6a44', [18.9, .5, Z], [1, 1, 3.2]); add(scene, 'box', '#2f3440', [19.25, 2.1, Z], [.2, 1.9, 3.2]); INT.casa.tela = add(scene, 'box', new T.MeshBasicMaterial({ color: 0x1b2030 }), [19.12, 2.1, Z], [.06, 1.6, 2.9], null, false); obst.push({ x: 18.9, z: Z, r: 1.3 });
+    chao('#ff8c1a', 15, Z + .5, 2.7, .09); chao('#ffcf33', 15, Z + .5, 1.9, .1);
+    add(scene, 'cyl', '#e2694a', [11.3, .4, F + .9], [.45, .8, .45]); add(scene, 'sphere', '#4fae4a', [11.3, 1.5, F + .9], [.8, 1, .8]); pintura(12.2, F + .25, '#ff7ab6'); pintura(17.6, F + .25, '#3a8bff'); janela(15, F + .25);
+    // ----- o que cada coisa faz -----
+    const feito = k => { rotina.add(k); confere(); };
+    coisa('casa', -13.9, F + 3.2, 1.35, 14, () => { sono = 5; destino.on = false; narr('Hora de dormir! Boa noite!'); [523, 494, 440, 392, 440, 392, 349, 330].forEach((f, i) => tom(f, f, .5, 'sine', .1, .6 + i * .5)); });
+    coisa('casa', -11.6, F + 2.5, 1.1, 8, () => { $('bt-roupa').click(); });
+    coisa('casa', -18.2, Z + 2.2, 1.5, 6, () => { narr('Um abraço bem apertado no ursinho!'); chuva(-18.2, 2.4, Z + 2.2, ['♥'], ['#ff5c8a', '#ff8fb0'], 2); });
+    coisa('casa', -8.2, F + 1.9, 1.25, 9, () => { narr('Tomando banho! Lava, lava, lava!'); chuva(pos.x, 3.6, pos.z, ['💧', '●'], ['#5cc6ff', '#bfe9fb', '#fff'], 8, 300); for (let i = 0; i < 24; i++) tom(2400 + Math.random() * 1600, 1800, .08, 'sine', .03, i * .1); setTimeout(() => feito('banho'), 2400); });
+    coisa('casa', -4.6, F + 2.3, 1.1, 8, () => { narr('Escovando os dentinhos! Chic, chic, chic!'); for (let i = 0; i < 10; i++) tom(2600, 1900, .06, 'square', .03, i * .16); chuva(pos.x, 3, pos.z, ['✦'], ['#fff', '#bfe9fb'], 4); setTimeout(() => feito('dentes'), 1800); });
+    coisa('casa', -1.7, F + 2.5, 1.1, 9, () => { narr('Xixi no vaso! Muito bem! Agora a descarga!'); tom(500, 90, 1.3, 'sawtooth', .12, 2.6, { tipo: 'lowpass', f: 700 }); chuva(-1.7, 2.6, F + 1.3, ['★'], ['#ffcf33'], 2, 1400); });
+    coisa('casa', 1.6, F + 2.4, 1.1, 9, () => { narr('Fazendo comidinha! Hum, que cheiro bom!'); for (let i = 0; i < 16; i++) tom(3000 + Math.random() * 2000, 2500, .05, 'sawtooth', .015, i * .14); chuva(1.4, 2.4, F + .95, ['♨', '●'], ['#fff', '#eee'], 5, 400); });
+    coisa('casa', 8.4, F + 2.6, 1.15, 8, () => { INT.casa.abre = 3; plim(500); narr('Uma fruta bem geladinha! Nhac!', 400); chuva(8.4, 2.6, F + 1.8, ['🍎', '🍌'], ['#ef4b4b', '#ffcf33'], 2, 500); });
+    coisa('casa', 6, Z + .8, 2.35, 9, () => { narr('Hora de comer! Nhac, nhac! Que delícia!'); [0, .5, 1, 1.5].forEach(d => tom(260, 180, .09, 'square', .1, d)); chuva(6, 2.3, Z + .8, ['♥', '🍽'], ['#ff8c1a', '#ff5c8a'], 3, 500); setTimeout(() => feito('comer'), 1600); });
+    coisa('casa', 15, F + 2.6, 1.2, 8, () => { sentado = 3; destino.on = false; narr('Que sofá gostoso!'); });
+    coisa('casa', 17.6, Z, 1.3, 10, () => { tvOn = 6; narr('Hora do desenho!'); MEL.forEach((f, i) => tom(f * 2, f * 2, .16, 'square', .04, .8 + i * .18)); });
+  }
+
+  // =============== LOJA DE CHOCOLATE ===============
+  function brigadeiro(cor, s = 1) { const g = new T.Group(); g.scale.setScalar(s); add(g, 'cyl', '#ffffff', [0, .09, 0], [.3, .18, .3]); add(g, 'sphere', cor, [0, .3, 0], [.27, .25, .27]);
+    const gran = cor === '#fff3e0' ? ['#fff', '#f3d9b8'] : ['#ff7ab6', '#ffcf33', '#5cc6ff', '#fff'];
+    [[.12, .5, .05], [-.1, .49, .1], [0, .53, -.1], [-.15, .44, -.08], [.16, .42, -.1], [.02, .45, .2]].forEach(([a, b, c], i) => add(g, 'sphere', gran[i % gran.length], [a, b, c], [.045, .045, .045], null, false)); return g; }
+  const DOCES = [['#5a3a22', 'brigadeiro', 'brigadeiros'], ['#fff3e0', 'beijinho', 'beijinhos'], ['#ff7ab6', 'bicho-de-pé', 'bichos-de-pé']];
+  const bandeja = new T.Group(); bandeja.position.set(0, 3.25, 0); bandeja.visible = false; av.add(bandeja); add(bandeja, 'cyl', '#ffffff', [0, 0, 0], [.75, .06, .75]);
+  const naBandeja = [-.38, 0, .38].map(x => { const b = brigadeiro('#5a3a22'); b.position.set(x, .03, 0); b.visible = false; bandeja.add(b); return b; });
+  const vendedor = new T.Group(), vendC = new T.Group(); vendedor.add(vendC);
+  { const Z = 460, F = Z - 6, I = INT.loja;
+    // fachada na rua
+    const g = new T.Group(); g.position.set(33, 0, 16); scene.add(g);
+    add(g, 'box', '#ffe1ec', [0, 2, 0], [7, 4, 5.4]); add(g, 'box', '#5a3a22', [0, .5, 0], [7.1, 1, 5.5]); add(g, 'box', '#5a3a22', [0, 4.2, 0], [7.5, .5, 5.9]);
+    for (let i = 0; i < 7; i++) add(g, 'box', i % 2 ? '#ffffff' : '#ff7ab6', [-3 + i, 3.35, 3.2], [1, .14, 1.4], [.45, 0, 0]);
+    add(g, 'box', '#8a5a2c', [0, 1.35, 2.72], [1.6, 2.7, .12]); add(g, 'sphere', '#ffcf33', [.5, 1.35, 2.82], [.09, .09, .09]); [-2.3, 2.3].forEach(x => { add(g, 'box', '#8a5a2c', [x, 2, 2.72], [1.6, 1.6, .1]); add(g, 'box', '#fff3e0', [x, 2, 2.76], [1.3, 1.3, .1]); const b = brigadeiro('#5a3a22', 1.3); b.position.set(x, 1.5, 2.9); g.add(b); });
+    const placa = brigadeiro('#5a3a22', 4.2); placa.position.set(0, 4.4, .4); g.add(placa);
+    obst.push({ x: 33, z: 16, r: 4.3 }); arvs.push({ g, x: 33, z: 16, larg: 3.5 });
+    add(scene, 'box', '#ecd9a6', [33, .15, 19.9], [2.2, .06, 1.6], null, false); add(scene, 'box', '#ff7ab6', [I.mat[0], .2, I.mat[1]], [2.8, .08, 1.7], null, false);
+    // interior
+    sala(I, [[0, 20, '#fff3e0', '#ffd6e4']]);
+    for (let i = 0; i < 10; i++) for (let j = 0; j < 6; j++) if ((i + j) % 2) add(scene, 'box', '#ffc2dd', [-9 + i * 2, .08, Z - 5 + j * 2], [2, .02, 2], null, false);
+    [2.6, 4.6].forEach(y => add(scene, 'box', '#8a5a2c', [0, y, F + .5], [17, .16, .8]));
+    for (let i = 0; i < 9; i++) { const x = -7.2 + i * 1.8; add(scene, 'cyl', ['#ff7ab6', '#ffcf33', '#5cc6ff', '#b07a44'][i % 4], [x, 3.1, F + .5], [.34, .8, .34]); add(scene, 'cyl', '#ffffff', [x, 3.55, F + .5], [.36, .1, .36]); const b = brigadeiro(DOCES[i % 3][0], 1.2); b.position.set(x, 4.68, F + .5); scene.add(b); }
+    add(scene, 'box', '#8a5a2c', [0, .7, Z - 2.6], [13, 1.4, 1.5]); add(scene, 'box', '#fff3e0', [0, 1.44, Z - 2.6], [13.2, .1, 1.7]); for (let x = -6; x <= 6; x += 1.5) obst.push({ x, z: Z - 2.6, r: .95 });
+    DOCES.forEach(([c], k) => { const x0 = -4.4 + k * 4.4; add(scene, 'cyl', '#ffffff', [x0, 1.56, Z - 2.6], [1.25, .08, .75]); for (let i = 0; i < 6; i++) { const b = brigadeiro(c); b.position.set(x0 - .7 + (i % 3) * .7, 1.6, Z - 2.85 + Math.floor(i / 3) * .5); scene.add(b); } });
+    vendedor.position.set(0, 0, Z - 4.3); scene.add(vendedor);
+    add(vendC, 'sphere', '#b07a44', [0, 1.3, 0], [.85, 1, .75]); add(vendC, 'box', '#ffffff', [0, 1.2, .62], [1, 1.2, .14]); add(vendC, 'sphere', '#b07a44', [0, 2.75, 0], [.72, .68, .66]); add(vendC, 'sphere', '#e8c9a0', [0, 2.58, .52], [.34, .26, .24]);
+    [-1, 1].forEach(s => { add(vendC, 'sphere', '#b07a44', [s * .55, 3.3, 0], [.24, .24, .16]); add(vendC, 'sphere', '#b07a44', [s * .95, 1.6, .2], [.24, .5, .24], [0, 0, s * .5]); });
+    { const c = new T.Group(); c.position.set(0, 2.75, 0); vendC.add(c); olhos(c, .25, .12, .56, .08); add(c, 'sphere', '#3b2a20', [0, -.06, .74], [.1, .08, .06], null, false); [-1, 1].forEach(s => add(c, 'sphere', '#ff8fa8', [s * .46, -.12, .44], [.12, .08, .06], null, false)); }
+    add(vendC, 'cyl', '#ffffff', [0, 3.5, 0], [.5, .3, .5]); add(vendC, 'sphere', '#ffffff', [0, 3.85, 0], [.62, .42, .62]);
+    add(scene, 'cyl', '#ffffff', [-6, 1, Z + 2.6], [1.4, .14, 1.4]); add(scene, 'cyl', '#ff7ab6', [-6, .5, Z + 2.6], [.2, 1, .2]); obst.push({ x: -6, z: Z + 2.6, r: 1.4 });
+    [-1.9, 1.9].forEach(dx => { add(scene, 'cyl', '#ff7ab6', [-6 + dx, .55, Z + 2.6], [.5, .14, .5]); add(scene, 'cyl', '#ffffff', [-6 + dx, .28, Z + 2.6], [.1, .55, .1]); });
+    add(scene, 'cyl', '#ffffff', [6.5, .5, Z + 2], [1.1, 1, 1.1]); add(scene, 'cone', '#5a3a22', [6.5, 1.9, Z + 2], [.95, 1.9, .95]); add(scene, 'cyl', '#5a3a22', [6.5, 1.05, Z + 2], [1.15, .12, 1.15]); add(scene, 'sphere', '#5a3a22', [6.5, 2.9, Z + 2], [.25, .25, .25]); obst.push({ x: 6.5, z: Z + 2, r: 1.2 });
+    [[-8.6, '#ef4b4b'], [8.8, '#5cc6ff']].forEach(([x, c]) => { add(scene, 'cyl', '#ffffff', [x, 1.4, F + 1.6], [.07, 2.8, .07]); add(scene, 'cyl', c, [x, 3.2, F + 1.6], [.8, .16, .8], [Math.PI / 2, 0, 0]); add(scene, 'cyl', '#ffffff', [x, 3.2, F + 1.7], [.45, .16, .45], [Math.PI / 2, 0, 0], false); });
+    DOCES.forEach(([c, um, varios], k) => coisa('loja', -4.4 + k * 4.4, Z - .9, 1.15, 1.6, () => {
+      if (nBandeja >= 3) { narr('A bandeja já está cheia! Sente na mesinha para comer!'); return; }
+      naBandeja[nBandeja].children.forEach((m, i) => { if (i === 1) m.material = mat(c); }); naBandeja[nBandeja].visible = true; nBandeja++; bandeja.visible = true;
+      tom(1200, 1200, .08, 'square', .1); tom(1600, 1600, .25, 'square', .1, .09); vendedor.userData.pulo = 1; chuva(-4.4 + k * 4.4, 2.6, Z - 2.4, ['★'], ['#ffcf33'], 1);
+      narr(['Um ' + um + '!', 'Dois! Mais um ' + um + '!', 'Três! Bandeja cheia! Agora sente na mesinha para comer!'][nBandeja - 1], 150); }));
+    coisa('loja', 6.5, Z + 2, 2.1, 7, () => { narr('Uma fonte de chocolate! Que delícia!'); chuva(6.5, 3, Z + 2, ['●'], ['#5a3a22', '#8a5a2c'], 5, 250); });
+  }
+  const levaJunto = () => { rastro.length = 0; const c = bichos.find(b => b.tipo === 'cachorro'); if (c && c.visto) c.g.position.set(pos.x + 1.6, 0, pos.z + 1.2); if (dino.visible) dino.position.set(pos.x - 1.6, 0, pos.z + 1.2);
+    pintos.forEach((p, i) => { if (p.segue && !p.entregue) p.g.position.set(pos.x - 1 + i, 0, pos.z + 2); }); };
+  function entra(id) { const I = INT[id]; dentro = id; portaFrio = 1; pos.set(I.ent[0], 0, I.ent[1]); vel.set(0, 0, 0); destino.on = false; face = Math.PI; levaJunto(); plim(660); camera.position.set(pos.x, 10.5, pos.z + 14.5);
+    if (id === 'casa') narr('Bem-vinda à sua casinha!'); else if (tempo - disseLoja > 30 || !disseLoja) { disseLoja = tempo || 1; narr('Bem-vinda à loja de chocolate! Escolha um docinho no balcão!'); vendedor.userData.pulo = 1; } }
+  function saiDeCasa() { const I = INT[dentro]; dentro = null; portaFrio = 2.5; pos.set(I.mat[0], 0, I.mat[1] + 2.4); vel.set(0, 0, 0); destino.on = false; face = 0; sono = sentado = 0; escuro.style.opacity = 0; levaJunto(); plim(520); camera.position.set(pos.x, 10.5, pos.z + 14.5); }
+  function atualizaInteriores(dt) {
+    portaFrio -= dt; avCorpo.rotation.x = 0;
+    if (!dentro) { if (portaFrio <= 0 && !dirigindo && pos.y < 1 && !paraq) for (const id in INT) if (dist2(pos, INT[id].mat[0], INT[id].mat[1]) < 1.25) { entra(id); break; } return; }
+    const I = INT[dentro];
+    if (portaFrio <= 0 && dist2(pos, I.sai[0], I.sai[1]) < 1.05) return saiDeCasa();
+    COISAS.forEach(c => { if (c.int !== dentro) return; c.frio -= dt; if (c.frio <= 0 && sono <= 0 && sentado <= 0 && dist2(pos, c.x, c.z) < c.r) { c.frio = c.espera; c.fn(); } });
+    if (dentro === 'casa') {
+      if (sono > 0) { sono -= dt; travado = .2; av.position.set(-16.5, 1.15, 396.4); av.rotation.y = 0; avCorpo.rotation.x = -Math.PI / 2; avCorpo.rotation.y = 0; avCorpo.position.y = 0; escuro.style.opacity = sono > .8 ? .62 : 0;
+        if (Math.random() < dt * 1.2) confete3d(-16, 2.6, 395.4, ['z', 'Z'], ['#fff', '#cfe0ff']);
+        if (sono <= 0) { pos.set(-13.6, 0, 397.6); rotina.add('dormir'); narr('Bom dia! Dormiu bem?'); fanfarra(); confere(); } }
+      if (sentado > 0) { sentado -= dt; travado = .2; av.position.set(15, .55, 395.5); av.rotation.y = 0; pernas[0].rotation.x = pernas[1].rotation.x = -1.45; if (sentado <= 0) pos.set(15, 0, 397.4); }
+      if (tvOn > 0) { tvOn -= dt; I.tela.material.color.setHSL((tempo * .8) % 1, .8, .55); if (tvOn <= 0) I.tela.material.color.set(0x1b2030); }
+      if (I.abre > 0) I.abre -= dt; I.porta.rotation.y += ((I.abre > 0 ? -1.5 : 0) - I.porta.rotation.y) * Math.min(1, 6 * dt);
+      I.urso.rotation.z = Math.sin(tempo * 2) * .05;
+    } else {
+      vendC.position.y = Math.abs(Math.sin(tempo * 2)) * .05; vendedor.rotation.y = Math.atan2(pos.x - vendedor.position.x, pos.z - vendedor.position.z) * .6;
+      if (vendedor.userData.pulo > 0) { vendedor.userData.pulo -= dt * 1.8; vendC.position.y = Math.sin(Math.max(0, vendedor.userData.pulo) * Math.PI) * .5; }
+      comeFrio -= dt;
+      if (nBandeja > 0 && comeFrio <= 0 && dist2(pos, -6, 462.6) < 2.5) { nBandeja--; naBandeja[nBandeja].visible = false; nComidos++; comeFrio = 1.5; [0, .22].forEach(d => tom(260, 180, .09, 'square', .1, d));
+        confete3d(pos.x, 3, pos.z, ['♥', '●'], ['#ff5c8a', '#5a3a22']); if (nBandeja === 0) { bandeja.visible = false; narr('Nhac, nhac! Comeu tudinho! Que delícia!', 200); fanfarra(); } else narr('Nhac! Que delícia!', 100); confere(); }
+    }
+  }
+
+  const PONTE = false, FAM = { x: 1e6, z: 1e6, r: 0 }, PAI = { n: 0, e: 0, t: 0 }, ENT = { n: 0 }, BOLA = { x: 0, z: 0 }, papai = { g: { position: { x: 0, z: 0 } } };
+  let nadando = false, baleT = 0, baleDisse = false, nGols = 0, levaPizza = false;
+  function atualizaFamilia() {}
+
   // ================= estado do jogo =================
   const pos = new T.Vector3(0, 0, 8), vel = new T.Vector3(); let noChao = true, face = 0, passo = 0, platAtual = null, check = 0, travado = 0;
   let nEstrelas = 0, nBaloes = 0, obbyFeito = false, entregues = false, rodando = false, tempo = 0;
@@ -820,13 +975,17 @@
     { ic: '✏️', fala: 'Vá até a escolinha e escreva as letras A, E, I, O, U!', total: 5, prog: () => escLetras, alvo: () => ESC },
     { ic: '📝', fala: 'Vá até a escolinha e escreva os números de um a cinco!', total: 5, prog: () => escNums, alvo: () => ESC },
     { ic: '🃏', fala: 'Vá até a escolinha e jogue o jogo da memória!', total: 1, prog: () => escMem, alvo: () => ESC },
+    { ic: '🏠', fala: 'Entre na casinha e faça a rotina: comer, tomar banho, escovar os dentes e dormir!', total: 4, prog: () => rotina.size,
+      alvo: () => dentro !== 'casa' ? { x: INT.casa.mat[0], z: INT.casa.mat[1] } : !rotina.has('comer') ? { x: 6, z: 400.8 } : !rotina.has('banho') ? { x: -8.2, z: 395.9 } : !rotina.has('dentes') ? { x: -4.6, z: 396.3 } : { x: -13.9, z: 397.2 } },
+    { ic: '🍫', fala: 'Vá até a loja de chocolate, compre três docinhos e coma na mesinha!', total: 3, prog: () => Math.min(3, nComidos),
+      alvo: () => dentro !== 'loja' ? { x: INT.loja.mat[0], z: INT.loja.mat[1] } : (nBandeja >= 3 || (nBandeja > 0 && nBandeja + nComidos >= 3)) ? { x: -6, z: 462.6 } : { x: 0, z: 459.1 } },
     { ic: '🏆', fala: 'Agora pegue todas as estrelas do mundo!', total: TOTAL, prog: () => nEstrelas, alvo: () => maisPerto(estrelas.filter(e => !e.pega).map(e => e.m.position)) },
   ];
   let iMissao = 0, trocando = false, temSave = false;
   const txtM = () => { const f = MISSOES[iMissao]['fala']; return typeof f === 'function' ? f() : f; };
   const SAVE = 'mundo_save_v1';
   function salva() { try { localStorage.setItem(SAVE, JSON.stringify({ i: iMissao, est: estrelas.map(e => +e.pega), tro: !trofeu.visible, ceu: ceuFeito, nb: nBaloes,
-    vis: bichos.filter(b => b.visto).map(b => b.tipo), ent: entregues, nCen, borb: borbs.map(b => +b.pega), iArco, con: conchas.map(c => +c.pega), esc: [escLetras, escNums, escMem], sur: [...achadas] })); } catch (e) {} }
+    vis: bichos.filter(b => b.visto).map(b => b.tipo), ent: entregues, nCen, borb: borbs.map(b => +b.pega), iArco, con: conchas.map(c => +c.pega), esc: [escLetras, escNums, escMem], sur: [...achadas], rot: [...rotina], doce: nComidos, fam: [PAI.n, baleT > 5 ? 6 : 0, nGols, ENT.n] })); } catch (e) {} }
   function carrega() { let d = null; try { d = JSON.parse(localStorage.getItem(SAVE) || 'null'); } catch (e) {} if (!d) return; temSave = true;
     (d.est || []).forEach((v, i) => { if (v && estrelas[i]) { estrelas[i].pega = true; estrelas[i].m.visible = false; nEstrelas++; } });
     if (d.tro) { trofeu.visible = false; obbyFeito = true; nEstrelas++; } if (d.ceu) { estrelaCeu.visible = false; ceuFeito = true; nEstrelas++; }
@@ -835,6 +994,8 @@
     nCen = d.nCen || 0; (d.borb || []).forEach((v, i) => { if (v && borbs[i]) { borbs[i].pega = true; borbs[i].g.visible = false; nBorb++; } }); iArco = d.iArco || 0;
     (d.con || []).forEach((v, i) => { if (v && conchas[i]) { conchas[i].pega = true; conchas[i].g.visible = false; nCon++; } });
     (d.sur || []).forEach(id => achadas.add(id)); if (achadas.has('bau')) abreBau(true); if (achadas.has('ovo')) chocou(true); if (achadas.size === SUR.length) liberaTudo();
+    (d.rot || []).forEach(k => rotina.add(k)); nComidos = d.doce || 0;
+    if (d.fam) { PAI.n = d.fam[0]; baleT = d.fam[1]; baleDisse = baleT > 5; nGols = d.fam[2]; ENT.n = d.fam[3]; }
     if (d.esc) [escLetras, escNums, escMem] = d.esc;
     iMissao = Math.min(d.i || 0, MISSOES.length - 1); $('n-estrelas').textContent = nEstrelas; }
   carrega(); atualizaAlbum();
@@ -884,18 +1045,18 @@
   // ================= física e lógica =================
   function alturaChao(x, z, y) {
     let h = -30;
-    if (Math.hypot(x, z) < R || Math.hypot(x - ILHA2.x, z - ILHA2.z) < ILHA2.r || (x > 56 && x < 64.5 && Math.abs(z - 8) < 2.5)) h = 0;
+    if (Math.hypot(x, z) < R || Math.hypot(x - ILHA2.x, z - ILHA2.z) < ILHA2.r || (x > 56 && x < 64.5 && Math.abs(z - 8) < 2.5) || Math.hypot(x - FAM.x, z - FAM.z) < FAM.r || (PONTE && x < -60 && x > -76 && Math.abs(z - 2) < 2.3) || (Math.abs(x) < 20 && Math.abs(z - 400) < 6.5) || (Math.abs(x) < 10 && Math.abs(z - 460) < 6.5)) h = 0;
     let em = null;
     plats.forEach(p => { if (Math.abs(x - p.g.position.x) < p.w / 2 + .15 && Math.abs(z - p.g.position.z) < p.d / 2 + .15 && p.topo <= y + .55 && p.topo > h) { h = p.topo; em = p; } });
     return [h, em];
   }
   function renasce() {
-    const c = checks[check]; pos.set(c[0], (check === 1 ? 1.2 : 0) + 3, c[1]); vel.set(0, 0, 0); travado = .5; splash(); fala('Ops! Vamos de novo!');
+    const oeste = pos.x < -55, c = oeste ? [-58, 2] : checks[check]; pos.set(c[0], (!oeste && check === 1 ? 1.2 : 0) + 3, c[1]); vel.set(0, 0, 0); travado = .5; splash(); fala('Ops! Vamos de novo!');
   }
   function saudacao(b) {
     b.frio = b.visto && b.tipo === 'cachorro' ? 40 : 7; b.pulo = 1; const d = sons[b.tipo]();
     if (b.visto || b.tipo !== 'cachorro') fala(FRASES[b.tipo], d); confete3d(b.g.position.x, 2.6, b.g.position.z, ['♥'], ['#ff5c8a', '#ff8fb0']);
-    if (!b.visto) { b.visto = true; if (b.tipo === 'cachorro') fala('Au, au! Eu sou o caramelo! Vou passear com você!', d); confere(); }
+    if (!b.visto) { b.visto = true; if (b.tipo === 'cachorro') fala('Au, au! Eu sou o Miguel! Vou passear com você!', d); confere(); }
   }
   function atualiza(dt) {
     tempo += dt;
@@ -912,7 +1073,7 @@
     marca3d.visible = destino.on; if (destino.on) { marca3d.position.set(destino.x, Math.max(0, pos.y) + .3, destino.z); marca3d.scale.setScalar(1 + Math.sin(tempo * 8) * .12); }
     const il = Math.hypot(ix, iz); if (il > 1) { ix /= il; iz /= il; }
     if (travado > 0) { travado -= dt; ix = iz = 0; }
-    const noLago = dist2(pos, LAGO.x, LAGO.z) < LAGO.r - .5 && pos.y < .3, V = noLago ? 4.5 : dirigindo ? 12.5 : 7.6, ac = dirigindo ? 5 : noChao ? 14 : 7;
+    const noLago = dist2(pos, LAGO.x, LAGO.z) < LAGO.r - .5 && pos.y < .3, V = noLago || nadando ? 4.5 : dirigindo ? 12.5 : 7.6, ac = dirigindo ? 5 : noChao ? 14 : 7;
     vel.x += (ix * V - vel.x) * Math.min(1, ac * dt); vel.z += (iz * V - vel.z) * Math.min(1, ac * dt);
     tFrio -= dt;
     if (!dirigindo && tFrio <= 0 && noChao && dist2(pos, trator.position.x, trator.position.z) < 2.3) { dirigindo = true; tFrio = 1; plim(500); fala(avisouTrator ? 'Vrum, vrum!' : 'Vrum, vrum! Vamos passear de trator! Para descer, aperte o botão vermelho.'); avisouTrator = true; }
@@ -925,7 +1086,10 @@
     pos.x += vel.x * dt; pos.z += vel.z * dt; pos.y += vel.y * dt;
     // borda da ilha principal: parede suave, menos no píer
     const dc = Math.hypot(pos.x, pos.z);
-    if (dc > R - 1.2 && dc < R + 3 && !(pos.x > 0 && Math.abs(pos.z - 8) < 2.4) && pos.y < 3) { const k = (R - 1.2) / dc; pos.x *= k; pos.z *= k; }
+    if (dc > R - 1.2 && dc < R + 3 && !(pos.x > 0 && Math.abs(pos.z - 8) < 2.4) && !(PONTE && pos.x < 0 && Math.abs(pos.z - 2) < 2.1) && pos.y < 3) { const k = (R - 1.2) / dc; pos.x *= k; pos.z *= k; }
+    if (dentro) { const I = INT[dentro]; pos.x = Math.max(-I.w + .7, Math.min(I.w - .7, pos.x)); pos.z = Math.max(I.z - 5.1, Math.min(I.z + 5.9, pos.z)); }
+    const df = Math.hypot(pos.x - FAM.x, pos.z - FAM.z);
+    if (df > FAM.r - 1.2 && df < FAM.r + 3 && !(pos.x > FAM.x && Math.abs(pos.z - 2) < 2.1) && pos.y < 3) { const k = (FAM.r - 1.2) / df; pos.x = FAM.x + (pos.x - FAM.x) * k; pos.z = FAM.z + (pos.z - FAM.z) * k; }
     obst.forEach(o => { const dx = pos.x - o.x, dz = pos.z - o.z, d = Math.hypot(dx, dz), m = o.r + .45; if (d < m && d > .001 && pos.y < 4) { pos.x = o.x + dx / d * m; pos.z = o.z + dz / d * m; } });
     const [h, em] = alturaChao(pos.x, pos.z, pos.y);
     if (pos.y <= h) {
@@ -1021,6 +1185,8 @@
       confete3d(c.g.position.x, 1, c.g.position.z, ['✦'], ['#ffd1e0', '#fff']); confere(); } });
     estrelaCeu.rotation.y = tempo * 1.5;
     if (estrelaCeu.visible && dist2(pos, 6, 26) < 2.6 && pos.y > 15) { estrelaCeu.visible = false; ceuFeito = true; nEstrelas++; pegouEstrela(estrelaCeu.position); fala('Você pegou a estrela do céu!', 300); }
+    atualizaInteriores(dt);
+    atualizaFamilia(dt);
     atualizaSurpresas(dt, noLago);
     // ---- estações de aprender e escolinha ----
     const icM = trocando ? '' : MISSOES[iMissao].ic; estacoes.forEach(e => atualizaEstacao(e, dt, e.ic === icM));
@@ -1028,7 +1194,7 @@
     // ---- seta, farol, nuvens, mar ----
     const alvo = trocando ? null : MISSOES[iMissao].alvo();
     if (alvo) { const d = dist2(pos, alvo.x, alvo.z); farol.visible = true; farol.position.set(alvo.x, 20, alvo.z); farol.material.opacity = .2 + Math.sin(tempo * 3) * .08;
-      seta.visible = d > 7; seta.position.set(pos.x, pos.y + 3.7 + Math.sin(tempo * 4) * .12, pos.z); seta.rotation.y = Math.atan2(alvo.x - pos.x, alvo.z - pos.z); }
+      seta.visible = d > 7 && d < 150; seta.position.set(pos.x, pos.y + 3.7 + Math.sin(tempo * 4) * .12, pos.z); seta.rotation.y = Math.atan2(alvo.x - pos.x, alvo.z - pos.z); }
     else { farol.visible = seta.visible = false; }
     nuvens.forEach((n, i) => { n.position.x += dt * (.6 + i * .08); if (n.position.x > 190) n.position.x = -170; });
     ondasTex.offset.x = tempo * .006; ondasTex.offset.y = Math.sin(tempo * .3) * .01;
@@ -1094,7 +1260,7 @@
     chao(x, z) { return alturaChao(x, z, pos.y + 2.2)[0]; },
     est(ic) { const e = estacoes.find(q => q.ic === ic), a = e.itens[Math.min(e.alvo, e.itens.length - 1)]; return { cx: e.cx, cz: e.cz, x: a.x, z: a.z, feitos: e.feitos }; },
     missao(i) { iMissao = i; trocando = false; desenhaMissao(); },
-    estado() { const a = trocando ? null : MISSOES[iMissao].alvo(); return { m: iMissao, trocando, n: nEstrelas, nb: nBaloes, check, dirigindo, noChao, x: pos.x, y: pos.y, z: pos.z, alvo: a ? [a.x, a.z] : null, nCen, nBorb, iArco, nCon, ceuFeito, levando, destino: destino.on, sur: [...achadas], paraq, fg: FG.e, dino: dino.visible,
+    estado() { const a = trocando ? null : MISSOES[iMissao].alvo(); return { m: iMissao, trocando, n: nEstrelas, nb: nBaloes, check, dirigindo, noChao, x: pos.x, y: pos.y, z: pos.z, alvo: a ? [a.x, a.z] : null, nCen, nBorb, iArco, nCon, ceuFeito, levando, destino: destino.on, sur: [...achadas], dentro, rotina: [...rotina], bandeja: nBandeja, comidos: nComidos, sono, paraq, fg: FG.e, dino: dino.visible, pai: [PAI.e, PAI.n, papai.g.position.x, papai.g.position.z], bale: baleT, gols: nGols, bola: [BOLA.x, BOLA.z], ent: ENT.n, levaPizza, nadando, pent: visual.pent || 0,
       chaoFrente: alturaChao(pos.x + 1.3, pos.z, pos.y)[0], baloes: baloes.filter(b => b.g.visible).map(b => [b.g.position.x, b.g.position.y, b.g.position.z]), vistos: bichos.filter(b => b.visto).length, pintos: pintos.filter(p => p.segue).length, entregues, obbyFeito }; },
     pulaTroca() { if (trocando) { iMissao++; trocando = false; desenhaMissao(); } },
   };
