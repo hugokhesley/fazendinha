@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#4db8f0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Mundo da Fazendinha</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#4db8f0; font-family:'Baloo 2', system-ui, sans-serif;
+    user-select:none; -webkit-user-select:none; touch-action:none; overscroll-behavior:none; }
+  #c { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  button { font:inherit; }
+  [hidden] { display:none !important; }
+  body:not(.jogando) #topo, body:not(.jogando) #stick, body:not(.jogando) #pular { display:none; }
+  body.vestindo #stick, body.vestindo #pular, body.vestindo #missao, body.vestindo #estrelas { display:none; }
+  .bt { width:64px; height:64px; border-radius:50%; border:5px solid #fff; background:#fff; cursor:pointer; padding:0;
+    box-shadow:0 5px 0 rgba(0,0,0,.18), 0 10px 16px rgba(0,0,0,.14); display:flex; align-items:center; justify-content:center;
+    font-size:30px; line-height:1; text-decoration:none; }
+  .bt:active { transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.18); }
+  #topo { position:fixed; left:0; right:0; top:0; padding:12px 14px; display:flex; align-items:flex-start; justify-content:space-between;
+    gap:10px; pointer-events:none; z-index:4; }
+  #topo > * { pointer-events:auto; }
+  .grupo { display:flex; gap:10px; align-items:center; }
+  #missao { display:flex; align-items:center; gap:12px; background:#fff; border-radius:44px; padding:6px 8px 6px 16px;
+    box-shadow:0 5px 0 rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.12); min-height:68px; }
+  #m-icone { font-size:38px; line-height:1; }
+  #m-pontos { display:flex; gap:6px; align-items:center; font-weight:800; font-size:26px; color:#5a4632; }
+  #m-pontos i { width:18px; height:18px; border-radius:50%; background:#e8dcc0; display:block; }
+  #m-pontos i.ok { background:#4fbf5a; box-shadow:0 0 0 3px #c9efcd; }
+  #m-ouvir { width:54px; height:54px; background:#ffcf33; border-color:#ffcf33; box-shadow:0 4px 0 #d99a00; font-size:26px; }
+  #estrelas { background:#fff; border-radius:40px; padding:4px 18px 4px 12px; font-weight:800; font-size:30px; color:#f0a000;
+    box-shadow:0 5px 0 rgba(0,0,0,.14); display:flex; align-items:center; gap:6px; height:64px; }
+  #estrelas.pop { animation:pop .4s cubic-bezier(.3,1.8,.5,1); }
+  @keyframes pop { from{transform:scale(1.35)} to{transform:scale(1)} }
+  #pular { position:fixed; right:28px; bottom:34px; width:118px; height:118px; border-radius:50%; border:7px solid #fff;
+    background:#ff6b5e; box-shadow:0 9px 0 #c9443a, 0 18px 26px rgba(0,0,0,.22); z-index:4; cursor:pointer; padding:0;
+    display:flex; align-items:center; justify-content:center; }
+  #pular:active, #pular.on { transform:translateY(6px); box-shadow:0 3px 0 #c9443a; }
+  #stick { position:fixed; width:150px; height:150px; border-radius:50%; background:rgba(255,255,255,.35);
+    border:5px solid rgba(255,255,255,.85); z-index:3; pointer-events:none; left:34px; bottom:34px; }
+  #stick b { position:absolute; left:50%; top:50%; width:66px; height:66px; margin:-33px 0 0 -33px; border-radius:50%;
+    background:#fff; box-shadow:0 5px 0 rgba(0,0,0,.18); display:block; }
+  #stick.livre { opacity:.75; }
+  .part { position:fixed; pointer-events:none; font-size:40px; font-weight:800; z-index:6; animation:sobe 1.2s ease-out forwards;
+    text-shadow:0 2px 0 rgba(0,0,0,.15); }
+  @keyframes sobe { from{transform:translate(-50%,-50%) scale(.4); opacity:1}
+    to{transform:translate(calc(-50% + var(--dx)), calc(-50% - 150px)) scale(1.25); opacity:0} }
+  #faixa { position:fixed; left:50%; top:24%; transform:translate(-50%,-50%) scale(0); z-index:7; pointer-events:none;
+    background:#fff; border-radius:40px; padding:10px 34px; font-weight:800; font-size:clamp(28px,5vw,54px); color:#f08a1c;
+    box-shadow:0 8px 0 rgba(0,0,0,.14); transition:transform .4s cubic-bezier(.3,1.6,.5,1); white-space:nowrap; }
+  #faixa.on { transform:translate(-50%,-50%) scale(1); }
+
+  .tela { position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+  #inicio { background:linear-gradient(rgba(77,184,240,.55), rgba(255,255,255,0) 60%); transition:opacity .5s; }
+  #inicio h1 { margin:0; font-size:clamp(46px,10vw,120px); font-weight:800; color:#fff; line-height:.95; text-align:center;
+    text-shadow:0 6px 0 #f08a1c, 0 14px 26px rgba(0,0,0,.22); transform:rotate(-3deg); }
+  #inicio p { margin:0; background:#fff; color:#f08a1c; padding:2px 24px; border-radius:30px; font-weight:800; font-size:clamp(16px,2.6vw,26px);
+    box-shadow:0 4px 0 rgba(0,0,0,.1); }
+  #play { width:clamp(120px,20vw,170px); height:clamp(120px,20vw,170px); border-radius:50%; border:7px solid #fff; background:#ff6b5e;
+    box-shadow:0 10px 0 #c9443a, 0 18px 30px rgba(0,0,0,.25); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    animation:pulsa 1.4s ease-in-out infinite; margin-top:10px; }
+  @keyframes pulsa { 0%,100%{scale:1} 50%{scale:1.07} }
+  #roupa { background:none; pointer-events:none; } #painel { pointer-events:auto; }
+  #roupa[hidden], #inicio[hidden] { display:none; }
+  #painel { background:#fff6e0; border-radius:36px; padding:18px 22px 22px; box-shadow:0 10px 0 #ecd9ac, 0 24px 40px rgba(0,0,0,.25);
+    display:flex; flex-direction:column; gap:12px; max-width:92vw; margin-left:min(34vw, 420px); }
+  .linha { display:flex; align-items:center; gap:10px; }
+  .linha > span { font-size:34px; width:44px; text-align:center; }
+  .cor { width:54px; height:54px; border-radius:50%; border:5px solid #fff; box-shadow:0 4px 0 rgba(0,0,0,.15); cursor:pointer; padding:0; font-size:26px; background:#fff; }
+  .cor.sel { outline:5px solid #4fbf5a; }
+  #ok { align-self:center; width:84px; height:84px; background:#4fbf5a; border-color:#fff; box-shadow:0 6px 0 #2f8f3c; font-size:40px; color:#fff; }
+  @media (max-height:520px) { #painel { transform:scale(.8); } .bt { width:54px; height:54px; } #pular { width:96px; height:96px; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="topo">
+  <div class="grupo">
+    <a class="bt" id="casa" href="index.html" aria-label="Voltar para a Fazendinha" hidden>🏠</a>
+    <button class="bt" id="bt-roupa" aria-label="Mudar a roupa">👗</button>
+    <button class="bt" id="bt-som" aria-label="Música">🎵</button>
+    <button class="bt" id="bt-noite" aria-label="Dia ou noite">🌙</button>
+  </div>
+  <div id="missao">
+    <span id="m-icone">⭐</span><span id="m-pontos"></span>
+    <button class="bt" id="m-ouvir" aria-label="Ouvir a missão">🔊</button>
+  </div>
+  <div id="estrelas">⭐ <span id="n-estrelas">0</span></div>
+</div>
+<div id="stick" class="livre"><b></b></div>
+<button id="pular" aria-label="Pular"><svg width="56%" viewBox="0 0 100 100"><path d="M50 14 L88 58 H64 V86 H36 V58 H12 Z" fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"/></svg></button>
+<div id="faixa"></div>
+
+<div id="roupa" class="tela" hidden>
+  <div id="painel">
+    <div class="linha" data-k="vestido"><span>👗</span></div>
+    <div class="linha" data-k="cabelo"><span>💇</span></div>
+    <div class="linha" data-k="pele"><span>🙂</span></div>
+    <div class="linha" data-k="enfeite"><span>✨</span></div>
+    <button class="bt" id="ok" aria-label="Pronto">✔</button>
+  </div>
+</div>
+
+<div id="inicio" class="tela">
+  <h1>Mundo da<br>Fazendinha</h1>
+  <p>Explore, pule e cumpra as missões</p>
+  <button id="play" aria-label="Começar"><svg width="46%" viewBox="0 0 100 100"><path d="M30 18 L84 50 L30 82 Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/></svg></button>
+</div>
+
+<script src="three.min.js"></script>
+<script>
+(() => {
+  const T = THREE, $ = id => document.getElementById(id);
+  const TEM_CASA = /*HOME*/true;
+  if (TEM_CASA) $('casa').hidden = false;
+
+  // ================= áudio e voz =================
+  let ctx = null, vozPt = null, musicaOn = true;
+  function escolheVoz() {
+    try {
+      const nota = v => { const l = (v.lang || '').replace('_', '-').toLowerCase(); if (!l.startsWith('pt')) return -1;
+        let n = l === 'pt-br' ? 10 : 0; if (/natural|neural|online/i.test(v.name)) n += 8; if (/google/i.test(v.name)) n += 6;
+        if (/luciana|francisca|fernanda|thalita|leticia/i.test(v.name)) n += 5; return n; };
+      vozPt = speechSynthesis.getVoices().map(v => [nota(v), v]).filter(p => p[0] >= 0).sort((a, b) => b[0] - a[0])[0]?.[1] || null;
+    } catch (e) {}
+  }
+  try { escolheVoz(); speechSynthesis.onvoiceschanged = escolheVoz; } catch (e) {}
+  function fala(txt, atraso = 0) {
+    setTimeout(() => { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(txt); u.lang = 'pt-BR'; if (vozPt) u.voice = vozPt;
+      u.rate = .9; u.pitch = 1.08; speechSynthesis.speak(u); } catch (e) {} }, atraso);
+  }
+  function tom(f1, f2, dur, tipo = 'sine', vol = .2, delay = 0, filtro = null) {
+    if (!ctx) return;
+    const t = ctx.currentTime + delay, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = tipo; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    let no = o; if (filtro) { const f = ctx.createBiquadFilter(); f.type = filtro.tipo; f.frequency.value = filtro.f; f.Q.value = filtro.q || 1; o.connect(f); no = f; }
+    no.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + dur + .05);
+  }
+  const sons = {
+    vaca: () => (tom(170, 115, 1.1, 'sawtooth', .2, 0, { tipo: 'lowpass', f: 700 }), 1100),
+    jumento: () => ([0, .28, .56, .84].forEach((d, i) => tom(i % 2 ? 280 : 560, i % 2 ? 240 : 500, .26, 'square', .1, d, { tipo: 'lowpass', f: 1500 })), 1150),
+    porco: () => ([0, .18, .36].forEach(d => tom(230, 130, .14, 'sawtooth', .18, d, { tipo: 'bandpass', f: 600, q: 2 })), 600),
+    galinha: () => ([0, .1, .2].forEach(d => tom(900, 1150, .08, 'triangle', .18, d)), tom(700, 1200, .35, 'triangle', .18, .32), 750),
+    cachorro: () => ([0, .22].forEach(d => tom(520, 240, .13, 'square', .14, d, { tipo: 'lowpass', f: 1400 })), 500),
+    pato: () => ([0, .2, .4].forEach(d => tom(400, 300, .16, 'sawtooth', .2, d, { tipo: 'bandpass', f: 1200, q: 5 })), 650),
+  };
+  const plim = (f = 880) => { tom(f, f * 1.5, .18, 'sine', .2); tom(f * 1.5, f * 2, .2, 'sine', .15, .1); };
+  const piu = (v = .18) => { tom(1800, 2500, .08, 'sine', v); tom(2000, 2700, .08, 'sine', v, .12); };
+  const fanfarra = () => [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tom(f, f, .2, 'triangle', .18, i * .14));
+  const boing = () => tom(180, 620, .35, 'sine', .25);
+  const pulinho = () => tom(420, 760, .16, 'sine', .12);
+  const splash = () => { tom(900, 120, .4, 'sawtooth', .12, 0, { tipo: 'lowpass', f: 900 }); tom(300, 80, .5, 'sine', .15, .05); };
+  const estouro = () => { tom(700, 70, .12, 'square', .18); tom(1400, 200, .08, 'triangle', .15); };
+  // musiquinha de fundo
+  const MEL = [523, 659, 784, 659, 587, 698, 880, 698, 523, 659, 784, 1047, 880, 784, 659, 587];
+  let passoMus = 0;
+  setInterval(() => { if (!ctx || !musicaOn || !rodando || document.hidden) return;
+    const f = MEL[passoMus % MEL.length]; tom(f, f, .28, 'triangle', .035); if (passoMus % 4 === 0) tom(f / 4, f / 4, .5, 'sine', .06); passoMus++; }, 330);
+
+  // ================= cena =================
+  const canvas = $('c');
+  const renderer = new T.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+  const scene = new T.Scene();
+  { const cv = document.createElement('canvas'); cv.width = 4; cv.height = 256; const g = cv.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
+    gr.addColorStop(0, '#3fa8ee'); gr.addColorStop(.5, '#9adcf8'); gr.addColorStop(.78, '#e6f6f4'); gr.addColorStop(1, '#fdf0c8');
+    g.fillStyle = gr; g.fillRect(0, 0, 4, 256); scene.background = new T.CanvasTexture(cv); }
+  const ceuDia = scene.background;
+  const ceuNoite = (() => { const cv = document.createElement('canvas'); cv.width = 4; cv.height = 256; const g = cv.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
+    gr.addColorStop(0, '#10134a'); gr.addColorStop(.6, '#3a3f8f'); gr.addColorStop(1, '#8a6fb0'); g.fillStyle = gr; g.fillRect(0, 0, 4, 256); return new T.CanvasTexture(cv); })();
+  scene.fog = new T.Fog(0xdaf2f6, 80, 230);
+  const camera = new T.PerspectiveCamera(50, 1, 1, 420);
+  const hemi = new T.HemisphereLight(0xffffff, 0x9ad07a, .78); scene.add(hemi);
+  const sol = new T.DirectionalLight(0xfff0cc, .62);
+  sol.castShadow = true; sol.shadow.mapSize.set(1024, 1024);
+  Object.assign(sol.shadow.camera, { left: -34, right: 34, top: 34, bottom: -34, near: 1, far: 120 }); sol.shadow.bias = -.0008; sol.shadow.normalBias = .06;
+  scene.add(sol); scene.add(sol.target);
+
+  const GEO = { sphere: new T.SphereGeometry(1, 24, 16), box: new T.BoxGeometry(1, 1, 1), cyl: new T.CylinderGeometry(1, 1, 1, 22),
+    cone: new T.ConeGeometry(1, 1, 22), cone4: new T.ConeGeometry(1, 1, 4), ico: new T.IcosahedronGeometry(1, 0), circ: new T.CircleGeometry(1, 48) };
+  const mats = {};
+  const mat = c => mats[c] || (mats[c] = new T.MeshLambertMaterial({ color: c }));
+  function add(p, g, c, pos, sc, rot, sombra = true) {
+    const m = new T.Mesh(GEO[g] || g, typeof c === 'object' ? c : mat(c));
+    m.position.set(pos[0], pos[1], pos[2]); if (sc) m.scale.set(sc[0], sc[1], sc[2]); if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+    m.castShadow = sombra; m.receiveShadow = true; p.add(m); return m;
+  }
+  const chao = (c, x, z, r, y = .02, sz = 1) => { const m = add(scene, 'circ', c, [x, y, z], [r, r * sz, 1], [-Math.PI / 2, 0, 0], false); return m; };
+  let semente = 11;
+  const rng = () => { semente |= 0; semente = semente + 0x6D2B79F5 | 0; let t = Math.imul(semente ^ semente >>> 15, 1 | semente);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+
+  // ---------- mar e ilhas ----------
+  const R = 62, ILHA2 = { x: 106, z: 8, r: 10 };
+  const mar = add(scene, 'circ', new T.MeshLambertMaterial({ color: 0x35a3e6 }), [0, -1.1, 0], [520, 520, 1], [-Math.PI / 2, 0, 0], false);
+  let ondasTex;
+  { const cv = document.createElement('canvas'); cv.width = cv.height = 256; const g = cv.getContext('2d');
+    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 5; g.lineCap = 'round';
+    for (let i = 0; i < 9; i++) { const x = (i * 97) % 256, y = (i * 61) % 256; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 18, y - 12, x + 36, y); g.stroke(); }
+    ondasTex = new T.CanvasTexture(cv); ondasTex.wrapS = ondasTex.wrapT = T.RepeatWrapping; ondasTex.repeat.set(46, 46);
+    add(scene, 'circ', new T.MeshBasicMaterial({ map: ondasTex, transparent: true, depthWrite: false }), [0, -1.0, 0], [520, 520, 1], [-Math.PI / 2, 0, 0], false); }
+  function ilha(x, z, r) {
+    add(scene, 'cyl', '#e8d3a0', [x, -1.3, z], [r + 3.2, 2.2, r + 3.2], null, false);
+    add(scene, 'cyl', '#8a6a44', [x, -3, z], [r + .2, 4.4, r + .2], null, false);
+    const topo = add(scene, 'cyl', '#7fd05a', [x, -.5, z], [r, 1, r], null, false); topo.receiveShadow = true;
+  }
+  ilha(0, 0, R); ilha(ILHA2.x, ILHA2.z, ILHA2.r);
+  // manchas de grama e caminhos
+  for (let i = 0; i < 26; i++) { const a = rng() * 6.283, d = rng() * (R - 10); chao(i % 2 ? '#8ad865' : '#72c44f', Math.cos(a) * d, Math.sin(a) * d, 4 + rng() * 6, .03 + i * .004); }
+  const caminho = (x1, z1, x2, z2, w = 3.2) => { const dx = x2 - x1, dz = z2 - z1, L = Math.hypot(dx, dz);
+    const m = add(scene, 'box', '#ecd9a6', [(x1 + x2) / 2, .14, (z1 + z2) / 2], [w, .05, L + w * .6], [0, Math.atan2(dx, dz), 0], false); return m; };
+  caminho(0, 8, 0, -22); caminho(0, 8, 46, 8); caminho(0, 8, -30, 9); caminho(0, 6, 15, -5); caminho(-2, 9, -15, 13);
+  chao('#ecd9a6', 0, 8, 5.5, .175);
+
+  // ---------- natureza ----------
+  const obst = [], arvs = [];                       // círculos sólidos {x,z,r}
+  const livres = [[0, 8, 9], [24, -6, 13], [0, -34, 15], [-34, 12, 13], [-10, -6, 8], [-18, 15, 7], [50, 8, 12], [24, 8, 26, 1]];
+  const ocupado = (x, z, folga) => livres.some(l => l[3] ? (Math.abs(x - l[0]) < l[2] && Math.abs(z - l[1]) < 4) : Math.hypot(x - l[0], z - l[1]) < l[2] + folga)
+    || obst.some(o => Math.hypot(x - o.x, z - o.z) < o.r + folga + 1.5);
+  function arvore(x, z, s = 1, tipo = 0) {
+    const g = new T.Group(); g.position.set(x, 0, z); scene.add(g);
+    if (tipo === 2) {            // pinheiro
+      add(g, 'cyl', '#9b6a3c', [0, .9 * s, 0], [.32 * s, 1.8 * s, .32 * s]);
+      [[1.9, 2.2, 2.4], [1.5, 2, 3.7], [1.05, 1.8, 4.9]].forEach(([r, h, y], i) => add(g, 'cone', i % 2 ? '#3f9e45' : '#358c3e', [0, y * s, 0], [r * s, h * s, r * s]));
+    } else {
+      add(g, 'cyl', '#9b6a3c', [0, 1.2 * s, 0], [.38 * s, 2.4 * s, .38 * s]);
+      add(g, 'sphere', '#4fae4a', [0, 3.5 * s, 0], [2 * s, 1.8 * s, 2 * s]);
+      add(g, 'sphere', '#3f9e45', [-1.2 * s, 2.9 * s, .3 * s], [1.3 * s, 1.2 * s, 1.3 * s]);
+      add(g, 'sphere', '#63c25a', [1.1 * s, 3.1 * s, -.2 * s], [1.3 * s, 1.2 * s, 1.3 * s]);
+      add(g, 'sphere', '#63c25a', [.2 * s, 4.5 * s, .2 * s], [1.2 * s, 1 * s, 1.2 * s]);
+      if (tipo === 1) [[-1.3, 2.6, 1.1], [1.2, 2.9, 1.2], [.1, 3.2, 1.9], [-.5, 4.3, 1.2]].forEach(([fx, fy, fz], i) => {
+        add(g, 'sphere', i % 2 ? '#ffc21a' : '#f04a3a', [fx * s, fy * s, fz * s], [.2 * s, .27 * s, .2 * s]); });
+    }
+    obst.push({ x, z, r: .7 * s }); arvs.push({ g, x, z });
+  }
+  for (let i = 0, n = 0; i < 400 && n < 16; i++) { const x = 30 + (rng() - .5) * 30, z = -32 + (rng() - .5) * 26; if (Math.hypot(x, z) > R - 5 || ocupado(x, z, 1.5)) continue; arvore(x, z, .9 + rng() * .5, n % 3); n++; }
+  for (let i = 0, n = 0; i < 600 && n < 26; i++) { const a = rng() * 6.283, d = 14 + rng() * (R - 19), x = Math.cos(a) * d, z = Math.sin(a) * d; if (ocupado(x, z, 2)) continue; arvore(x, z, .8 + rng() * .6, n % 4 === 0 ? 2 : n % 3 === 0 ? 1 : 0); n++; }
+  // pedras, flores e capim (instanciados)
+  const pedraMat = new T.MeshLambertMaterial({ color: 0xb9bcc6, flatShading: true });
+  for (let i = 0; i < 16; i++) { const a = rng() * 6.283, d = 10 + rng() * (R - 14), x = Math.cos(a) * d, z = Math.sin(a) * d; if (ocupado(x, z, 1)) continue;
+    const s = .5 + rng() * .8; add(scene, 'ico', pedraMat, [x, s * .35, z], [s, s * .7, s], [0, rng() * 3, 0]); }
+  const dummy = new T.Object3D();
+  function espalha(geo, cor, n, fn) { const im = new T.InstancedMesh(GEO[geo], mat(cor), n); let k = 0;
+    for (let i = 0; i < n * 6 && k < n; i++) { const a = rng() * 6.283, d = Math.sqrt(rng()) * (R - 2), x = Math.cos(a) * d, z = Math.sin(a) * d;
+      if (Math.hypot(x, z - 8) < 5 || obst.some(o => Math.hypot(x - o.x, z - o.z) < o.r + .3)) continue; fn(dummy, x, z); dummy.updateMatrix(); im.setMatrixAt(k++, dummy.matrix); }
+    im.count = k; im.receiveShadow = true; scene.add(im); }
+  ['#ff7ab6', '#ffcf33', '#ffffff', '#9b5de5', '#ff6b5e'].forEach(c => espalha('sphere', c, 46, (d, x, z) => { d.position.set(x, .22, z); d.scale.set(.2, .16, .2); d.rotation.set(0, 0, 0); }));
+  espalha('cone', '#57a83e', 260, (d, x, z) => { const s = .25 + rng() * .3; d.position.set(x, s, z); d.scale.set(.13, s * 2, .13); d.rotation.set((rng() - .5) * .5, 0, (rng() - .5) * .5); });
+  // nuvens
+  const nuvens = [];
+  for (let i = 0; i < 9; i++) { const g = new T.Group(); g.position.set(-150 + rng() * 320, 30 + rng() * 14, -110 + rng() * 150); const s = 2.5 + rng() * 2.5;
+    [[0, 0, 0, 2], [-1.7, -.2, .2, 1.4], [1.7, -.1, -.2, 1.5], [.5, .7, .1, 1.5]].forEach(([x, y, z, r]) => add(g, 'sphere', new T.MeshBasicMaterial({ color: 0xffffff, fog: false }), [x * s, y * s, z * s], [r * s, r * s * .8, r * s], null, false));
+    scene.add(g); nuvens.push(g); }
+
+  // ---------- construções ----------
+  function casa(x, z, s = 1, corBase = '#f6b94f', corPorta = '#2f9bd6') {
+    const g = new T.Group(); g.position.set(x, 0, z); g.scale.setScalar(s); scene.add(g);
+    add(g, 'box', '#fff1d0', [0, 2, 0], [7, 4, 5.6]); add(g, 'box', corBase, [0, .55, 0], [7.12, 1.1, 5.72]);
+    add(g, 'cone4', '#e2694a', [0, 5.3, 0], [5.5, 2.8, 5.5], [0, Math.PI / 4, 0]);
+    add(g, 'box', corPorta, [0, 1.3, 2.82], [1.5, 2.6, .12]); add(g, 'sphere', '#fff1d0', [.45, 1.3, 2.92], [.1, .1, .1]);
+    [-2.2, 2.2].forEach(wx => { add(g, 'box', corPorta, [wx, 2.4, 2.82], [1.5, 1.5, .1]); add(g, 'box', '#bfe9fb', [wx, 2.4, 2.86], [1.1, 1.1, .1]); });
+    add(g, 'box', '#c9573a', [2, 5.8, -.6], [.8, 1.8, .8]);
+    obst.push({ x, z, r: 4.3 * s });
+  }
+  casa(-10, -6); casa(-21, 17, .55, '#7fd3f7', '#e2694a');
+  // bandeirinhas
+  { const tri = new T.Shape(); tri.moveTo(-.38, 0); tri.lineTo(.38, 0); tri.lineTo(0, -.8); const tg = new T.ShapeGeometry(tri);
+    const a = new T.Vector3(-6.6, 4.3, -3.2), b = new T.Vector3(4, 5.2, 2), cs = ['#ef4b4b', '#ffcf33', '#2f9bd6', '#4fae4a', '#ff7ab6', '#ff8c1a'];
+    add(scene, 'cyl', '#c98d52', [4, 2.6, 2], [.16, 5.2, .16]); add(scene, 'sphere', '#ffcf33', [4, 5.35, 2], [.3, .3, .3]);
+    for (let i = 0; i < 12; i++) { const t = (i + .5) / 12, p = a.clone().lerp(b, t); p.y -= Math.sin(t * Math.PI) * 1.1;
+      const m = new T.Mesh(tg, new T.MeshLambertMaterial({ color: cs[i % cs.length], side: T.DoubleSide })); m.position.copy(p); m.rotation.y = Math.atan2(b.x - a.x, b.z - a.z) + Math.PI / 2; scene.add(m); } }
+  // cercado da fazenda
+  { const cx = 24, cz = -6, rr = 10.5;
+    for (let i = 0; i < 22; i++) { const a = i / 22 * 6.283; if (Math.abs(a - Math.PI) < .5) continue;
+      const x = cx + Math.cos(a) * rr, z = cz + Math.sin(a) * rr; add(scene, 'cyl', '#dfa869', [x, .8, z], [.2, 1.6, .2]); add(scene, 'sphere', '#dfa869', [x, 1.6, z], [.2, .2, .2]);
+      const a2 = (i + .5) / 22 * 6.283; if (Math.abs(a2 - Math.PI) < .36) continue;
+      [.6, 1.2].forEach(y => add(scene, 'box', '#c98d52', [cx + Math.cos(a2) * rr * .99, y, cz + Math.sin(a2) * rr * .99], [.14, .18, 3.05], [0, -a2, 0])); }
+    chao('#a87848', 23, -1, 2.6, .2); }
+  // lagoa
+  const LAGO = { x: 0, z: -34, r: 11 };
+  chao('#ecd9a2', LAGO.x, LAGO.z, LAGO.r + 1.4, .19); const aguaLago = chao(new T.MeshLambertMaterial({ color: 0x55b9f0 }), LAGO.x, LAGO.z, LAGO.r, .23);
+  [[5, 4], [-6, 3], [3, -6], [-4, -5]].forEach(([dx, dz], i) => { chao('#4fae4a', LAGO.x + dx, LAGO.z + dz, 1.1, .27); if (i % 2) add(scene, 'sphere', '#ff9ecb', [LAGO.x + dx, .3, LAGO.z + dz], [.3, .25, .3]); });
+  [[11.5, 2], [12, 4], [-11.6, -3]].forEach(([dx, dz]) => { add(scene, 'cyl', '#3f8f3f', [LAGO.x + dx, 1.2, LAGO.z + dz], [.07, 2.4, .07]); add(scene, 'cyl', '#8a5a2c', [LAGO.x + dx, 2.3, LAGO.z + dz], [.16, .7, .16]); });
+  // parque: trampolins e balões
+  const tramps = [[-34, 8], [-41, 15], [-30, 20]].map(([x, z], i) => {
+    add(scene, 'cyl', '#5a6b8a', [x, .25, z], [2.3, .5, 2.3]); add(scene, 'cyl', ['#ff6b5e', '#ffcf33', '#9b5de5'][i], [x, .52, z], [2.3, .1, 2.3]);
+    const lona = add(scene, 'cyl', '#2f3c5a', [x, .56, z], [1.75, .1, 1.75]); return { x, z, lona, t: 0 }; });
+  const baloes = [[-37, 7, 11, '#ef4b4b'], [-31, 6.4, 13, '#3a8bff'], [-41, 7.2, 9, '#ffcf33'], [-36, 6.8, 18, '#35b34a'], [-28, 6.6, 7, '#ff7ab6'], [-44, 7, 18, '#9b5de5']].map(([x, y, z, c]) => {
+    const g = new T.Group(); g.position.set(x, y, z); add(g, 'sphere', c, [0, 0, 0], [.95, 1.15, .95]); add(g, 'cone', c, [0, -1.2, 0], [.18, .25, .18]);
+    add(g, 'cyl', '#ffffff', [0, -2.3, 0], [.02, 2, .02], null, false); scene.add(g); return { g, y, volta: 0, fase: rng() * 6 }; });
+  // percurso colorido (obby) e píer
+  const plats = [];
+  const plat = (x, z, w, d, topo, cor, mov) => { const g = new T.Group(); g.position.set(x, topo - .4, z); add(g, 'box', cor, [0, 0, 0], [w, .8, d]); add(g, 'box', '#ffffff', [0, .42, 0], [w * .82, .06, d * .82], null, false);
+    add(g, 'cyl', '#8a6a44', [0, -2.4, 0], [.35, 4, .35], null, false); scene.add(g); const p = { g, x, z, w, d, topo, mov, z0: z, dz: 0 }; plats.push(p); return p; };
+  add(scene, 'box', '#c98d52', [61, -.02, 8], [7, .3, 5], null, false);
+  [[58.2, 5.6], [58.2, 10.4], [64.2, 5.6], [64.2, 10.4]].forEach(([x, z]) => add(scene, 'cyl', '#8a6a44', [x, .4, z], [.25, 2.4, .25]));
+  plat(68.5, 8, 4.4, 4.4, .6, '#ef4b4b'); plat(75, 8, 4.4, 4.4, 1.2, '#ff8c1a'); plat(82, 8, 6.4, 6.4, 1.2, '#ffcf33');
+  plat(89, 8, 4.4, 4.4, 1.8, '#35b34a'); plat(94.6, 8, 4.4, 4.4, 1, '#3a8bff', true);
+  const checks = [[60, 8], [82, 8], [99, 8]];
+  checks.forEach(([x, z], i) => { const y = i === 1 ? 1.2 : 0; add(scene, 'cyl', '#ffffff', [x, y + 1.6, z - 2.2], [.09, 3.2, .09]); add(scene, 'box', '#ef4b4b', [x + .6, y + 2.8, z - 2.2], [1.2, .7, .06]); });
+  // arco-íris e troféu
+  ['#ef4b4b', '#ff8c1a', '#ffcf33', '#35b34a', '#3a8bff', '#9b5de5'].forEach((c, i) => {
+    const m = new T.Mesh(new T.TorusGeometry(8 - i * .62, .32, 10, 40, Math.PI), new T.MeshLambertMaterial({ color: c })); m.position.set(ILHA2.x + 2, 0, ILHA2.z); m.rotation.y = Math.PI / 2; scene.add(m); });
+  [[-1, 0], [1, 0]].forEach(([s]) => [0, 1, 2].forEach(k => add(scene, 'sphere', '#ffffff', [ILHA2.x + 2, .6 + (k === 1 ? .5 : 0), ILHA2.z + s * 6.4 + (k - 1) * 1.1], [1.1, .9, 1.1], null, false)));
+  chao('#8ad865', ILHA2.x, ILHA2.z, 6, .05);
+
+  // ---------- trator ----------
+  const trator = new T.Group(), rodas = [];
+  { add(trator, 'box', '#e43b3b', [0, 1.05, .2], [1.5, .8, 2.6]); add(trator, 'box', '#c92f2f', [0, 1.5, 1.05], [1.3, .5, 1]);
+    add(trator, 'box', '#ffcf33', [0, .95, 1.62], [1.1, .5, .12]); add(trator, 'cyl', '#5a6b8a', [.45, 2.1, 1.1], [.09, .9, .09]);
+    add(trator, 'box', '#3b4a6a', [0, 1.5, -.5], [1.3, .16, 1]); [-1, 1].forEach(s => add(trator, 'box', '#3b4a6a', [s * .62, 2, -.95], [.1, 1.1, .1]));
+    add(trator, 'box', '#ffcf33', [0, 2.6, -.5], [1.6, .12, 1.4]);
+    [[-1, -.55, .85], [1, -.55, .85], [-1, 1.1, .5], [1, 1.1, .5]].forEach(([sx, z, r]) => { const w = new T.Group(); w.position.set(sx * .95, r, z); trator.add(w);
+      add(w, 'cyl', '#2f3440', [0, 0, 0], [r, .42, r], [0, 0, Math.PI / 2]); add(w, 'cyl', '#ffcf33', [sx * .03, 0, 0], [r * .45, .46, r * .45], [0, 0, Math.PI / 2]);
+      add(w, 'box', '#2f3440', [sx * .22, 0, 0], [.05, r * 1.5, .14], null, false); rodas.push({ w, r }); });
+    trator.position.set(10, 0, 20); trator.rotation.y = -.6; scene.add(trator); }
+  let dirigindo = false, tFrio = 0, tMotor = 0, avisouTrator = false;
+  // estrelas do céu (só à noite)
+  const ceuEstrelas = (() => { const g = new T.BufferGeometry(), a = []; for (let i = 0; i < 260; i++) { const t = rng() * 6.283, f = .15 + rng() * 1.2; a.push(Math.cos(t) * Math.cos(f) * 300, Math.sin(f) * 300, Math.sin(t) * Math.cos(f) * 300); }
+    g.setAttribute('position', new T.Float32BufferAttribute(a, 3)); const p = new T.Points(g, new T.PointsMaterial({ color: 0xfff8c4, size: 2.2, fog: false, sizeAttenuation: false })); p.visible = false; scene.add(p); return p; })();
+  let noite = false;
+  function trocaNoite() {
+    noite = !noite; scene.background = noite ? ceuNoite : ceuDia; scene.fog.color.set(noite ? 0x4a4a8f : 0xdaf2f6);
+    hemi.intensity = noite ? .42 : .78; hemi.color.set(noite ? 0xaab4ff : 0xffffff); sol.intensity = noite ? .3 : .62; sol.color.set(noite ? 0xbfd0ff : 0xfff0cc);
+    ceuEstrelas.visible = noite; mar.material.color.set(noite ? 0x24509a : 0x35a3e6); estrelaMat.emissiveIntensity = noite ? 1 : .55;
+    nuvens.forEach(n => n.children.forEach(c => c.material.color.set(noite ? 0x8f93c9 : 0xffffff)));
+    fala(noite ? 'Boa noite! Olha as estrelas no céu!' : 'Bom dia! O sol voltou!');
+  }
+
+  // ---------- estrelas ----------
+  const estrelaGeo = (() => { const s = new T.Shape(); for (let i = 0; i < 10; i++) { const r = i % 2 ? .42 : 1, a = -Math.PI / 2 + i * Math.PI / 5; s[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, -Math.sin(a) * r); }
+    const g = new T.ExtrudeGeometry(s, { depth: .28, bevelEnabled: true, bevelSize: .09, bevelThickness: .09, bevelSegments: 2 }); g.center(); return g; })();
+  const estrelaMat = new T.MeshLambertMaterial({ color: 0xffc21a, emissive: 0xb86a00, emissiveIntensity: .55 });
+  const P_ESTRELAS = [[6, 1.3, 4], [-6, 1.3, 3], [0, 1.3, -10], [-10, 1.3, 1.5], [12, 1.3, -3], [24, 1.3, -6], [31, 1.3, 7], [0, 1.3, -34], [12, 1.3, -42], [-13, 1.3, -27],
+    [30, 1.3, -30], [38, 1.3, -20], [-34, 6.4, 8], [-41, 6.4, 15], [-27, 1.3, 26], [-47, 1.3, -10], [-18, 1.3, 34], [15, 1.3, 36], [40, 1.3, 30], [52, 1.3, 8],
+    [68.5, 2.1, 8], [75, 2.7, 8], [89, 3.3, 8], [94.6, 2.5, 8]];
+  const estrelas = P_ESTRELAS.map(([x, y, z], i) => { const m = new T.Mesh(estrelaGeo, estrelaMat); m.position.set(x, y, z); m.scale.setScalar(.62); m.castShadow = true; scene.add(m);
+    return { m, y, pega: false, obby: i >= 20 }; });
+  const trofeu = new T.Mesh(estrelaGeo, estrelaMat); trofeu.position.set(ILHA2.x + 2, 2.6, ILHA2.z); trofeu.scale.setScalar(1.5); scene.add(trofeu);
+  add(scene, 'cyl', '#ffffff', [ILHA2.x + 2, .3, ILHA2.z], [1.6, .6, 1.6]);
+
+  // ================= bichos =================
+  function olhos(g, x, y, z, r) { [-1, 1].forEach(s => { add(g, 'sphere', '#3b2a20', [s * x, y, z], [r, r * 1.2, r * .7], null, false); add(g, 'sphere', '#ffffff', [s * x + r * .3, y + r * .45, z + r * .55], [r * .35, r * .35, r * .25], null, false); }); }
+  function quadrupede(p) {
+    const g = new T.Group(), c = new T.Group(); g.add(c); g.userData.corpo = c;
+    const { cor, bw, bh, bl, hr, alt } = p, hy = alt + bh * .7, hz = bl * .8;
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => { add(c, 'cyl', p.perna || cor, [sx * bw * .52, alt * .45, sz * bl * .5], [bw * .22, alt * .9, bw * .22]); add(c, 'cyl', p.casco, [sx * bw * .52, .13, sz * bl * .5], [bw * .25, .26, bw * .25]); });
+    add(c, 'sphere', cor, [0, alt, 0], [bw, bh, bl]);
+    (p.manchas || []).forEach(([mx, my, mz, r]) => add(c, 'sphere', p.cor3, [mx * bw * .72, alt + my * bh * .72, mz * bl * .72], [r, r, r], null, false));
+    const cab = new T.Group(); cab.position.set(0, hy, hz); c.add(cab); g.userData.cabeca = cab;
+    add(cab, 'sphere', p.corCab || cor, [0, 0, 0], [hr, hr * .95, hr * .92]);
+    add(cab, 'sphere', p.foc, [0, -hr * .28, hr * .66], [hr * .62, hr * .44, hr * .5]);
+    [-1, 1].forEach(s => add(cab, 'sphere', p.nariz, [s * hr * .2, -hr * .22, hr * 1.12], [hr * .08, hr * .11, hr * .06], null, false));
+    olhos(cab, hr * .42, hr * .22, hr * .8, hr * .13);
+    [-1, 1].forEach(s => add(cab, 'sphere', '#ff8fa8', [s * hr * .68, -hr * .08, hr * .62], [hr * .16, hr * .12, hr * .08], null, false));
+    if (p.orelha === 'lado') { [-1, 1].forEach(s => { add(cab, 'sphere', s < 0 ? cor : p.cor3, [s * hr * 1.05, hr * .35, 0], [hr * .42, hr * .22, hr * .16], [0, 0, s * .4]); add(cab, 'cone', '#f2d58a', [s * hr * .5, hr * 1.02, 0], [hr * .14, hr * .5, hr * .14], [0, 0, -s * .35]); });
+      add(cab, 'sphere', '#ffc93c', [0, -hr * .95, hr * .5], [hr * .2, hr * .2, hr * .2]); }
+    if (p.orelha === 'longa') { [-1, 1].forEach(s => { add(cab, 'sphere', cor, [s * hr * .45, hr * 1.5, -hr * .1], [hr * .24, hr * .9, hr * .16], [0, 0, -s * .22]); add(cab, 'sphere', '#f6b9c6', [s * hr * .45, hr * 1.5, hr * .04], [hr * .12, hr * .65, hr * .08], [0, 0, -s * .22], false); });
+      add(cab, 'sphere', '#4b4c5a', [0, hr * .92, -hr * .1], [hr * .28, hr * .22, hr * .4]); add(c, 'cone', '#e2694a', [0, alt + bh * .15, bl * .86], [bw * .42, bh * .55, bw * .2], [Math.PI, 0, 0]); }
+    if (p.orelha === 'tri') { [-1, 1].forEach(s => add(cab, 'cone', p.foc, [s * hr * .62, hr * .92, 0], [hr * .3, hr * .5, hr * .18], [0, 0, -s * .5]));
+      add(cab, 'cyl', p.foc, [0, -hr * .26, hr * 1.02], [hr * .36, hr * .2, hr * .28], [Math.PI / 2, 0, 0]); }
+    if (p.orelha === 'caida') { [-1, 1].forEach(s => add(cab, 'sphere', p.cor3, [s * hr * 1, -hr * .1, -hr * .05], [hr * .26, hr * .62, hr * .3], [0, 0, s * .28]));
+      add(cab, 'sphere', '#3b2a20', [0, -hr * .12, hr * 1.14], [hr * .17, hr * .13, hr * .12]); add(cab, 'sphere', '#ff7a8a', [0, -hr * .56, hr * .92], [hr * .14, hr * .2, hr * .1]); }
+    const rabo = new T.Group(); rabo.position.set(0, alt + bh * .3, -bl * .92); c.add(rabo); g.userData.rabo = rabo;
+    if (p.rabo === 'fino') { add(rabo, 'cyl', p.cor3, [0, -.35, -.12], [.07, .9, .07], [.35, 0, 0]); add(rabo, 'sphere', p.cor3, [0, -.82, -.28], [.16, .2, .16]); }
+    if (p.rabo === 'cone') add(rabo, 'cone', cor, [0, .35, -.1], [.17, .9, .17], [-.5, 0, 0]);
+    if (p.rabo === 'mola') { const m = new T.Mesh(new T.TorusGeometry(.2, .07, 8, 16), mat(p.foc)); m.position.set(0, 0, -.12); m.rotation.y = Math.PI / 2; m.castShadow = true; rabo.add(m); }
+    return g;
+  }
+  function ave(p) {
+    const g = new T.Group(), c = new T.Group(); g.add(c); g.userData.corpo = c; const s = p.s;
+    if (!p.nada) [-1, 1].forEach(k => { add(c, 'cyl', '#f08a1c', [k * .3 * s, .25 * s, 0], [.06 * s, .5 * s, .06 * s]); add(c, 'sphere', '#f08a1c', [k * .3 * s, .05 * s, .12 * s], [.2 * s, .06 * s, .26 * s]); });
+    const by = p.nada ? .45 * s : 1.05 * s;
+    add(c, 'sphere', p.cor, [0, by, 0], [p.bw * s, p.bh * s, p.bl * s]);
+    [-1, 1].forEach(k => add(c, 'sphere', p.cor2, [k * p.bw * s * .92, by, -.05 * s], [.16 * s, p.bh * s * .55, p.bl * s * .55], [0, 0, k * .25]));
+    const cab = new T.Group(); cab.position.set(0, by + p.cy * s, p.cz * s); c.add(cab); g.userData.cabeca = cab;
+    if (p.hr) add(cab, 'sphere', p.cor, [0, 0, 0], [p.hr * s, p.hr * s, p.hr * s]);
+    const fr = (p.hr || p.bw) * s;
+    olhos(cab, fr * .4, fr * .18, fr * .86, fr * .15);
+    [-1, 1].forEach(k => add(cab, 'sphere', '#ff9f6b', [k * fr * .66, -fr * .1, fr * .66], [fr * .17, fr * .13, fr * .08], null, false));
+    if (p.bico === 'pato') add(cab, 'sphere', '#ff8c1a', [0, -fr * .12, fr * 1.12], [fr * .42, fr * .16, fr * .45]);
+    else add(cab, 'cone', '#ffb21c', [0, -fr * .08, fr * 1.08], [fr * .2, fr * .42, fr * .2], [Math.PI / 2, 0, 0]);
+    if (p.crista) { [[-.15, 1.02], [0, 1.12], [.15, 1.02]].forEach(([z, y]) => add(cab, 'sphere', '#ef4b4b', [0, fr * y, fr * z * 2], [fr * .16, fr * .22, fr * .22])); add(cab, 'sphere', '#ef4b4b', [0, -fr * .42, fr * .95], [fr * .1, fr * .18, fr * .1]); }
+    if (p.topete) add(cab, 'cone', p.cor2, [0, fr * 1.05, 0], [fr * .16, fr * .4, fr * .16]);
+    return g;
+  }
+  const DEF = {
+    vaca: () => quadrupede({ cor: '#fffaf2', cor3: '#5b4636', foc: '#f9b8c4', nariz: '#d9788e', casco: '#5b4636', bw: 1.05, bh: .95, bl: 1.45, hr: .85, alt: 1.35, orelha: 'lado', rabo: 'fino', manchas: [[-.9, .5, .2, .5], [.8, .2, -.5, .45], [.3, .9, -.2, .4], [-.5, .4, -.8, .35]] }),
+    jumento: () => quadrupede({ cor: '#a7a9b5', cor3: '#4b4c5a', foc: '#f1e9df', nariz: '#8a8c9a', casco: '#4b4c5a', perna: '#9093a1', bw: .92, bh: .88, bl: 1.35, hr: .78, alt: 1.4, orelha: 'longa', rabo: 'fino' }),
+    porco: () => quadrupede({ cor: '#f8b4c4', cor3: '#ef8fa6', foc: '#ef8fa6', nariz: '#c9607a', casco: '#c9607a', bw: .95, bh: .85, bl: 1.15, hr: .78, alt: .95, orelha: 'tri', rabo: 'mola' }),
+    cachorro: () => quadrupede({ cor: '#e3a050', cor3: '#b56d2e', foc: '#f7dcb0', nariz: '#f7dcb0', casco: '#f7dcb0', bw: .62, bh: .6, bl: .95, hr: .62, alt: .85, orelha: 'caida', rabo: 'cone' }),
+    galinha: () => ave({ s: 1, cor: '#fffaf2', cor2: '#efe3cf', bw: .72, bh: .82, bl: .72, cy: .28, cz: .1, crista: true }),
+    pato: () => ave({ s: 1, cor: '#ffd84d', cor2: '#f7c22e', bw: .72, bh: .5, bl: .95, hr: .48, cy: .62, cz: .62, bico: 'pato', nada: true }),
+    pinto: () => ave({ s: .5, cor: '#ffd84d', cor2: '#f2b92a', bw: .72, bh: .72, bl: .72, cy: .1, cz: .05, topete: true }),
+  };
+  const ARTIGO = { vaca: 'a vaca', jumento: 'o jumento', porco: 'o porquinho', cachorro: 'o cachorro caramelo', galinha: 'a galinha', pato: 'o pato' };
+  const FRASES = { vaca: 'Muuu! Eu sou a vaca!', jumento: 'Ió, ió! Eu sou o jumento!', porco: 'Óinc, óinc! Eu sou o porquinho!', cachorro: 'Au, au! Eu sou o cachorro caramelo!', galinha: 'Có, có! Eu sou a galinha!', pato: 'Quá, quá! Eu sou o pato!' };
+  const bichos = [];
+  function poe(tipo, x, z, raio, vel = 1.2) { const g = DEF[tipo](); g.position.set(x, 0, z); scene.add(g);
+    const b = { tipo, g, casa: new T.Vector3(x, 0, z), raio, vel, alvo: new T.Vector3(x, 0, z), espera: rng() * 3, frio: 0, pulo: 0, visto: false, fase: rng() * 6 }; bichos.push(b); return b; }
+  poe('vaca', 21, -10, 4, .8); poe('jumento', 28, -5, 4, 1); poe('porco', 23, -1, 2.2, .7); poe('cachorro', 6, 3, 9, 2.4);
+  const galinha = poe('galinha', -16, 14, 2.5, 1); const pato = poe('pato', LAGO.x + 6, LAGO.z, 0, 0);
+  const pintos = [[33, -38], [9, -46], [-47, -4]].map(([x, z]) => { const g = DEF.pinto(); g.position.set(x, 0, z); scene.add(g); return { g, segue: false, entregue: false, fase: rng() * 6 }; });
+
+  // ================= avatar =================
+  const LOOK = { vestido: ['#ff5c8a', '#9b5de5', '#3a8bff', '#35b34a', '#ffb800', '#ff6b5e'], cabelo: ['#5a3a1a', '#1f1a17', '#f2c14e', '#c1502e', '#ff7ab6'],
+    pele: ['#ffd9b8', '#f1c08e', '#c98f5f', '#8a5a3a'], enfeite: ['✖', '👑', '🎀', '👒'] };
+  const visual = { vestido: 0, cabelo: 0, pele: 1, enfeite: 2 };
+  try { Object.assign(visual, JSON.parse(localStorage.getItem('mundo_visual') || '{}')); } catch (e) {}
+  const mVest = new T.MeshLambertMaterial(), mVest2 = new T.MeshLambertMaterial(), mCab = new T.MeshLambertMaterial(), mPele = new T.MeshLambertMaterial();
+  const av = new T.Group(), avCorpo = new T.Group(); av.add(avCorpo); scene.add(av);
+  const pernas = [-1, 1].map(s => { const p = new T.Group(); p.position.set(s * .22, .72, 0); avCorpo.add(p); add(p, 'cyl', mPele, [0, -.3, 0], [.13, .6, .13]); add(p, 'sphere', '#ffffff', [0, -.62, .08], [.18, .13, .26]); return p; });
+  add(avCorpo, 'cone', mVest, [0, 1.12, 0], [.66, 1.15, .66]); add(avCorpo, 'cyl', mVest2, [0, .6, 0], [.68, .1, .68]);
+  add(avCorpo, 'sphere', mVest, [0, 1.42, 0], [.36, .3, .32]);
+  const bracos = [-1, 1].map(s => { const b = new T.Group(); b.position.set(s * .36, 1.5, 0); avCorpo.add(b); add(b, 'cyl', mPele, [s * .16, -.28, 0], [.1, .6, .1], [0, 0, s * .5]); add(b, 'sphere', mPele, [s * .32, -.56, 0], [.13, .13, .13]); return b; });
+  const cabeca = new T.Group(); cabeca.position.set(0, 2.08, 0); avCorpo.add(cabeca);
+  add(cabeca, 'sphere', mPele, [0, 0, 0], [.6, .57, .56]);
+  add(cabeca, 'sphere', mCab, [0, .1, -.1], [.64, .58, .58]); add(cabeca, 'sphere', mCab, [0, .34, .2], [.5, .26, .34]);
+  [-1, 1].forEach(s => add(cabeca, 'sphere', mCab, [s * .56, .42, -.08], [.26, .26, .26]));
+  olhos(cabeca, .21, -.02, .5, .085);
+  [-1, 1].forEach(s => add(cabeca, 'sphere', '#ff8fa8', [s * .37, -.17, .42], [.11, .075, .05], null, false));
+  { const m = new T.Mesh(new T.TorusGeometry(.12, .028, 8, 14, Math.PI), mat('#b5483a')); m.position.set(0, -.2, .53); m.rotation.z = Math.PI; cabeca.add(m); }
+  const enfeites = [null, new T.Group(), new T.Group(), new T.Group()];
+  { const c = enfeites[1]; add(c, 'cyl', '#ffc21a', [0, .66, 0], [.3, .16, .3]); for (let i = 0; i < 5; i++) { const a = i / 5 * 6.283; add(c, 'cone', '#ffc21a', [Math.cos(a) * .26, .84, Math.sin(a) * .26], [.08, .22, .08]); } add(c, 'sphere', '#ef4b4b', [0, .68, .3], [.06, .06, .06]);
+    const l = enfeites[2]; [-1, 1].forEach(s => add(l, 'sphere', '#ff5c8a', [s * .2, .6, .1], [.2, .15, .1], [0, 0, s * .4])); add(l, 'sphere', '#ffd1e0', [0, .58, .13], [.09, .09, .09]);
+    const h = enfeites[3]; add(h, 'cyl', '#f2d58a', [0, .46, 0], [.95, .06, .95]); add(h, 'sphere', '#f2d58a', [0, .52, 0], [.5, .36, .5]); add(h, 'cyl', '#e2694a', [0, .52, 0], [.51, .1, .51]); }
+  enfeites.forEach(e => e && cabeca.add(e));
+  function aplicaVisual() {
+    mVest.color.set(LOOK.vestido[visual.vestido]); mVest2.color.set(LOOK.vestido[visual.vestido]).multiplyScalar(.8); mCab.color.set(LOOK.cabelo[visual.cabelo]); mPele.color.set(LOOK.pele[visual.pele]);
+    enfeites.forEach((e, i) => { if (e) e.visible = i === visual.enfeite; });
+    try { localStorage.setItem('mundo_visual', JSON.stringify(visual)); } catch (e) {}
+  }
+  aplicaVisual();
+  // seta-guia e farol da missão
+  const seta = new T.Group(); add(seta, 'cone', new T.MeshBasicMaterial({ color: 0xffcf33 }), [0, 0, .5], [.34, .8, .34], [Math.PI / 2, 0, 0], false); scene.add(seta);
+  const farol = add(scene, 'cyl', new T.MeshBasicMaterial({ color: 0xfff08a, transparent: true, opacity: .28, depthWrite: false, fog: false }), [0, 20, 0], [.9, 40, .9], null, false);
+
+  // ================= estado do jogo =================
+  const pos = new T.Vector3(0, 0, 8), vel = new T.Vector3(); let noChao = true, face = 0, passo = 0, platAtual = null, check = 0, travado = 0;
+  let nEstrelas = 0, nBaloes = 0, obbyFeito = false, entregues = false, rodando = false, tempo = 0;
+  const rastro = []; let tRastro = 0;
+  const TOTAL = estrelas.length + 1;
+  const dist2 = (a, x, z) => Math.hypot(a.x - x, a.z - z);
+  const maisPerto = lista => { let m = null, d = 1e9; lista.forEach(p => { const k = dist2(pos, p.x, p.z); if (k < d) { d = k; m = p; } }); return m; };
+  const MISSOES = [
+    { ic: '⭐', fala: 'Pegue cinco estrelas!', total: 5, prog: () => Math.min(nEstrelas, 5), alvo: () => maisPerto(estrelas.filter(e => !e.pega && !e.obby && e.y < 3).map(e => e.m.position)) },
+    { ic: '🐮', fala: 'Visite todos os bichos da fazenda!', total: 6, prog: () => bichos.filter(b => b.visto).length, alvo: () => maisPerto(bichos.filter(b => !b.visto).map(b => b.g.position)) },
+    { ic: '🐥', fala: 'Ache os três pintinhos e leve para a mamãe galinha!', total: 4, prog: () => pintos.filter(p => p.segue || p.entregue).length + (entregues ? 1 : 0),
+      alvo: () => maisPerto(pintos.filter(p => !p.segue && !p.entregue).map(p => p.g.position)) || galinha.g.position },
+    { ic: '🎈', fala: 'Pule no trampolim e estoure três balões!', total: 3, prog: () => Math.min(nBaloes, 3), alvo: () => maisPerto(tramps) },
+    { ic: '🌈', fala: 'Atravesse as plataformas coloridas até o arco-íris!', total: 1, prog: () => obbyFeito ? 1 : 0, alvo: () => pos.x < 58 ? { x: 60, z: 8 } : { x: ILHA2.x + 2, z: ILHA2.z } },
+    { ic: '🏆', fala: 'Agora pegue todas as estrelas do mundo!', total: TOTAL, prog: () => nEstrelas, alvo: () => maisPerto(estrelas.filter(e => !e.pega).map(e => e.m.position)) },
+  ];
+  let iMissao = 0, trocando = false;
+  function desenhaMissao() {
+    const m = MISSOES[iMissao], p = m.prog(); $('m-icone').textContent = m.ic; const el = $('m-pontos'); el.innerHTML = '';
+    if (m.total <= 6) for (let i = 0; i < m.total; i++) { const d = document.createElement('i'); if (i < p) d.className = 'ok'; el.appendChild(d); } else el.textContent = p + '/' + m.total;
+  }
+  function faixa(txt, ms = 2200) { const f = $('faixa'); f.textContent = txt; f.classList.add('on'); clearTimeout(faixa.t); faixa.t = setTimeout(() => f.classList.remove('on'), ms); }
+  function confere() {
+    desenhaMissao(); const m = MISSOES[iMissao];
+    if (trocando || m.prog() < m.total) return;
+    trocando = true; fanfarra(); faixa(iMissao === MISSOES.length - 1 ? 'Você é a campeã do mundo! 🏆' : 'Missão completa! 🎉', 3200);
+    for (let i = 0; i < 5; i++) setTimeout(() => confete(innerWidth * (.2 + Math.random() * .6), innerHeight * (.3 + Math.random() * .4)), i * 220);
+    fala(iMissao === MISSOES.length - 1 ? 'Parabéns! Você pegou todas as estrelas do mundo!' : 'Missão completa! Muito bem!', 200);
+    if (iMissao < MISSOES.length - 1) setTimeout(() => { iMissao++; trocando = false; desenhaMissao(); fala(MISSOES[iMissao].fala); confere(); }, 3800);
+  }
+  function confete(x, y, simb = ['★', '♥', '♪', '✦'], cores = ['#ff5c8a', '#ffcf33', '#5cc6ff', '#7ed957']) {
+    for (let i = 0; i < 6; i++) { const p = document.createElement('div'); p.className = 'part'; p.textContent = simb[i % simb.length]; p.style.color = cores[i % cores.length];
+      p.style.left = x + 'px'; p.style.top = y + 'px'; p.style.setProperty('--dx', (Math.random() * 220 - 110) + 'px'); p.style.animationDelay = (i * .05) + 's'; document.body.appendChild(p); setTimeout(() => p.remove(), 1500); }
+  }
+  const v3 = new T.Vector3();
+  function naTela(x, y, z) { v3.set(x, y, z).project(camera); return [(v3.x + 1) / 2 * innerWidth, (1 - v3.y) / 2 * innerHeight]; }
+  const confete3d = (x, y, z, s, c) => { const [a, b] = naTela(x, y, z); confete(a, b, s, c); };
+
+  // ================= controles =================
+  const stick = { id: null, x0: 0, y0: 0, x: 0, z: 0 }, teclas = {}, stEl = $('stick'), knob = stEl.querySelector('b');
+  let querPular = false;
+  canvas.addEventListener('pointerdown', ev => {
+    if (!rodando) return;
+    if (ev.clientX > innerWidth * .62) { querPular = true; return; }
+    if (stick.id !== null) return;
+    stick.id = ev.pointerId; stick.x0 = ev.clientX; stick.y0 = ev.clientY; stEl.classList.remove('livre');
+    stEl.style.left = (ev.clientX - 75) + 'px'; stEl.style.top = (ev.clientY - 75) + 'px'; stEl.style.bottom = 'auto';
+    try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
+  });
+  canvas.addEventListener('pointermove', ev => {
+    if (ev.pointerId !== stick.id) return;
+    let dx = ev.clientX - stick.x0, dy = ev.clientY - stick.y0; const l = Math.hypot(dx, dy), max = 52;
+    if (l > max) { dx *= max / l; dy *= max / l; }
+    stick.x = dx / max; stick.z = dy / max; knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  });
+  const solta = ev => { if (ev.pointerId !== stick.id) return; stick.id = null; stick.x = stick.z = 0; knob.style.transform = ''; stEl.classList.add('livre');
+    stEl.style.left = '34px'; stEl.style.top = 'auto'; stEl.style.bottom = '34px'; };
+  canvas.addEventListener('pointerup', solta); canvas.addEventListener('pointercancel', solta);
+  $('pular').addEventListener('pointerdown', ev => { ev.preventDefault(); querPular = true; });
+  addEventListener('keydown', e => { teclas[e.code] = true; if (e.code === 'Space') { querPular = true; e.preventDefault(); } });
+  addEventListener('keyup', e => { teclas[e.code] = false; });
+  document.addEventListener('contextmenu', e => e.preventDefault());
+
+  // ================= física e lógica =================
+  function alturaChao(x, z, y) {
+    let h = -30;
+    if (Math.hypot(x, z) < R || Math.hypot(x - ILHA2.x, z - ILHA2.z) < ILHA2.r || (x > 56 && x < 64.5 && Math.abs(z - 8) < 2.5)) h = 0;
+    let em = null;
+    plats.forEach(p => { if (Math.abs(x - p.g.position.x) < p.w / 2 + .15 && Math.abs(z - p.g.position.z) < p.d / 2 + .15 && p.topo <= y + .55 && p.topo > h) { h = p.topo; em = p; } });
+    return [h, em];
+  }
+  function renasce() {
+    const c = checks[check]; pos.set(c[0], (check === 1 ? 1.2 : 0) + 3, c[1]); vel.set(0, 0, 0); travado = .5; splash(); fala('Ops! Vamos de novo!');
+  }
+  function saudacao(b) {
+    b.frio = b.visto && b.tipo === 'cachorro' ? 40 : 7; b.pulo = 1; const d = sons[b.tipo]();
+    if (b.visto || b.tipo !== 'cachorro') fala(FRASES[b.tipo], d); confete3d(b.g.position.x, 2.6, b.g.position.z, ['♥'], ['#ff5c8a', '#ff8fb0']);
+    if (!b.visto) { b.visto = true; if (b.tipo === 'cachorro') fala('Au, au! Eu sou o caramelo! Vou passear com você!', d); confere(); }
+  }
+  function atualiza(dt) {
+    tempo += dt;
+    // ---- movimento do avatar ----
+    let ix = stick.x + ((teclas.KeyD || teclas.ArrowRight) ? 1 : 0) - ((teclas.KeyA || teclas.ArrowLeft) ? 1 : 0);
+    let iz = stick.z + ((teclas.KeyS || teclas.ArrowDown) ? 1 : 0) - ((teclas.KeyW || teclas.ArrowUp) ? 1 : 0);
+    const il = Math.hypot(ix, iz); if (il > 1) { ix /= il; iz /= il; }
+    if (travado > 0) { travado -= dt; ix = iz = 0; }
+    const noLago = dist2(pos, LAGO.x, LAGO.z) < LAGO.r - .5 && pos.y < .3, V = noLago ? 4.5 : dirigindo ? 12.5 : 7.6, ac = dirigindo ? 5 : noChao ? 14 : 7;
+    vel.x += (ix * V - vel.x) * Math.min(1, ac * dt); vel.z += (iz * V - vel.z) * Math.min(1, ac * dt);
+    tFrio -= dt;
+    if (!dirigindo && tFrio <= 0 && noChao && dist2(pos, trator.position.x, trator.position.z) < 2.3) { dirigindo = true; tFrio = 1; plim(500); fala(avisouTrator ? 'Vrum, vrum!' : 'Vrum, vrum! Vamos passear de trator! Para descer, aperte o botão vermelho.'); avisouTrator = true; }
+    if (dirigindo && ((querPular && tFrio <= 0) || pos.x > 54)) { dirigindo = false; tFrio = 2.5; querPular = false; trator.position.set(pos.x, 0, pos.z); pos.x += Math.cos(face) * 2.8 * (pos.x > 54 ? -1 : 1); pos.z -= Math.sin(face) * 2.8; vel.y = 6; noChao = false; pulinho(); }
+    if (dirigindo) querPular = false;
+    if (querPular && noChao) { vel.y = 9.6; noChao = false; pulinho(); }
+    querPular = false;
+    vel.y -= 24 * dt;
+    if (platAtual && platAtual.mov) pos.z += platAtual.dz;
+    pos.x += vel.x * dt; pos.z += vel.z * dt; pos.y += vel.y * dt;
+    // borda da ilha principal: parede suave, menos no píer
+    const dc = Math.hypot(pos.x, pos.z);
+    if (dc > R - 1.2 && dc < R + 3 && !(pos.x > 0 && Math.abs(pos.z - 8) < 2.4) && pos.y < 3) { const k = (R - 1.2) / dc; pos.x *= k; pos.z *= k; }
+    obst.forEach(o => { const dx = pos.x - o.x, dz = pos.z - o.z, d = Math.hypot(dx, dz), m = o.r + .45; if (d < m && d > .001 && pos.y < 4) { pos.x = o.x + dx / d * m; pos.z = o.z + dz / d * m; } });
+    const [h, em] = alturaChao(pos.x, pos.z, pos.y);
+    if (pos.y <= h) {
+      pos.y = h; const tr = tramps.find(t => dist2(pos, t.x, t.z) < 1.9);
+      if (tr && vel.y < -1 && !dirigindo) { vel.y = 19.5; noChao = false; tr.t = 1; boing(); }
+      else { if (!noChao && vel.y < -6) passo = 0; vel.y = 0; noChao = true; }
+      platAtual = em;
+    } else { noChao = false; if (pos.y > h + .4) platAtual = null; }
+    if (pos.y < -1.2) renasce();
+    checks.forEach(([cx, cz], i) => { if (i > check && dist2(pos, cx, cz) < 3.5 && noChao) { check = i; plim(1000); faixa('🚩', 900); } });
+    if (pos.x < 50) check = 0;
+    // ---- visual do avatar ----
+    const andando = Math.hypot(vel.x, vel.z);
+    if (andando > .5) { const alvo = Math.atan2(vel.x, vel.z); let d = alvo - face; while (d > Math.PI) d -= 6.283; while (d < -Math.PI) d += 6.283; face += d * Math.min(1, 12 * dt); }
+    av.position.copy(pos); av.rotation.y = face;
+    if (dirigindo) { trator.position.copy(pos); trator.rotation.y = face; av.position.y += 1.2; rodas.forEach(o => o.w.rotation.x += andando * dt / o.r);
+      trator.position.y += Math.sin(tempo * 30) * .012; if (andando > 1 && tempo - tMotor > .2) { tMotor = tempo; tom(75, 55, .12, 'sawtooth', .07, 0, { tipo: 'lowpass', f: 400 }); } }
+    arvs.forEach(a => { const dz = a.z - pos.z, some = dz > 1.5 && dz < 18 && Math.abs(a.x - pos.x) < 2.5 + dz * .32, k = some ? .2 : 1; a.g.scale.y += (k - a.g.scale.y) * Math.min(1, 6 * dt); });
+    passo += andando * dt * 1.5;
+    const bal = noChao ? Math.sin(passo * 2) * Math.min(1, andando / 4) : .9;
+    pernas[0].rotation.x = bal * .8; pernas[1].rotation.x = -bal * .8; bracos[0].rotation.x = -bal * .9; bracos[1].rotation.x = bal * .9;
+    bracos[0].rotation.z = bracos[1].rotation.z = 0; if (!noChao) { bracos[0].rotation.z = -1.2; bracos[1].rotation.z = 1.2; bracos[0].rotation.x = bracos[1].rotation.x = 0; }
+    if (dirigindo) { pernas[0].rotation.x = pernas[1].rotation.x = -1.4; bracos[0].rotation.x = bracos[1].rotation.x = -1.1; bracos[0].rotation.z = bracos[1].rotation.z = 0; }
+    avCorpo.position.y = dirigindo ? 0 : noChao ? Math.abs(Math.sin(passo * 2)) * .09 * Math.min(1, andando / 4) : 0;
+    avCorpo.scale.y = 1 + Math.sin(tempo * 3) * .012;
+    cabeca.rotation.z = Math.sin(passo * 2) * .04;
+    if (noLago && andando > 1 && Math.random() < dt * 5) tom(700 + Math.random() * 500, 300, .12, 'sine', .05);
+    // ---- rastro para os pintinhos ----
+    tRastro += dt; if (tRastro > .09 && andando > .3) { tRastro = 0; rastro.push(pos.x, pos.z); if (rastro.length > 400) rastro.splice(0, 2); }
+    // ---- estrelas ----
+    estrelas.forEach((e, i) => { if (e.pega) return; e.m.rotation.y = tempo * 2 + i; e.m.position.y = e.y + Math.sin(tempo * 2.5 + i) * .18;
+      if (dist2(pos, e.m.position.x, e.m.position.z) < 1.5 && Math.abs(pos.y + 1.2 - e.m.position.y) < 2) { e.pega = true; e.m.visible = false; nEstrelas++; pegouEstrela(e.m.position); } });
+    trofeu.rotation.y = tempo * 1.5; trofeu.position.y = 2.7 + Math.sin(tempo * 2) * .2;
+    if (trofeu.visible && dist2(pos, trofeu.position.x, trofeu.position.z) < 2.4) { trofeu.visible = false; nEstrelas++; obbyFeito = true; pegouEstrela(trofeu.position); fala('Você chegou no arco-íris!', 300); }
+    // ---- balões ----
+    baloes.forEach(b => { if (b.volta > 0) { b.volta -= dt; if (b.volta <= 0) b.g.visible = true; return; }
+      b.g.position.y = b.y + Math.sin(tempo * 1.4 + b.fase) * .3; b.g.rotation.z = Math.sin(tempo + b.fase) * .08;
+      if (dist2(pos, b.g.position.x, b.g.position.z) < 1.5 && Math.abs(pos.y + 1.6 - b.g.position.y) < 1.9) { b.g.visible = false; b.volta = 12; nBaloes++; estouro();
+        confete3d(b.g.position.x, b.g.position.y, b.g.position.z, ['●', '✦'], ['#ff5c8a', '#ffcf33', '#5cc6ff']); confere(); } });
+    tramps.forEach(t => { if (t.t > 0) { t.t = Math.max(0, t.t - dt * 3); t.lona.position.y = .56 - Math.sin(t.t * Math.PI) * .3; } });
+    // ---- plataforma móvel ----
+    plats.forEach(p => { if (!p.mov) return; const nz = p.z0 + Math.sin(tempo * .9) * 1.6; p.dz = nz - p.g.position.z; p.g.position.z = nz; });
+    // ---- bichos ----
+    bichos.forEach(b => {
+      const g = b.g, c = g.userData.corpo; b.frio -= dt;
+      const perto = dist2(pos, g.position.x, g.position.z);
+      if (b.tipo === 'pato') { const a = tempo * .35; g.position.set(LAGO.x + Math.cos(a) * 6, .02 + Math.sin(tempo * 2) * .04, LAGO.z + Math.sin(a) * 6); g.rotation.y = -a; }
+      else if (b.tipo === 'cachorro' && b.visto) { const tx = Math.min(54, pos.x - Math.sin(face) * 2.6 + 1.3), tz = pos.z - Math.cos(face) * 2.6, dx = tx - g.position.x, dz = tz - g.position.z, d = Math.hypot(dx, dz);
+        if (d > .8) { const v = Math.min(13, d * 2.4) * dt; g.position.x += dx / d * v; g.position.z += dz / d * v; let k = Math.atan2(dx, dz) - g.rotation.y; while (k > Math.PI) k -= 6.283; while (k < -Math.PI) k += 6.283; g.rotation.y += k * Math.min(1, 8 * dt); c.position.y = Math.abs(Math.sin(tempo * 11)) * .14; } }
+      else if (perto < 4.2) { const a = Math.atan2(pos.x - g.position.x, pos.z - g.position.z); let d = a - g.rotation.y; while (d > Math.PI) d -= 6.283; while (d < -Math.PI) d += 6.283; g.rotation.y += d * Math.min(1, 6 * dt); }
+      else { b.espera -= dt; const dx = b.alvo.x - g.position.x, dz = b.alvo.z - g.position.z, d = Math.hypot(dx, dz);
+        if (d > .3 && b.espera <= 0) { g.position.x += dx / d * b.vel * dt; g.position.z += dz / d * b.vel * dt; let k = Math.atan2(dx, dz) - g.rotation.y; while (k > Math.PI) k -= 6.283; while (k < -Math.PI) k += 6.283; g.rotation.y += k * Math.min(1, 5 * dt); c.position.y = Math.abs(Math.sin(tempo * 7 + b.fase)) * .08; }
+        else if (d <= .3) { const a = rng() * 6.283, r = rng() * b.raio; b.alvo.set(b.casa.x + Math.cos(a) * r, 0, b.casa.z + Math.sin(a) * r); b.espera = 1 + rng() * 3; } }
+      if (perto < (b.tipo === 'pato' ? 4.5 : 3.4) && b.frio <= 0) saudacao(b);
+      if (b.pulo > 0) { b.pulo = Math.max(0, b.pulo - dt * 1.6); c.position.y = Math.sin(b.pulo * Math.PI) * .9; c.scale.y = 1 + Math.sin(b.pulo * Math.PI * 2) * .08; }
+      if (g.userData.rabo) g.userData.rabo.rotation.y = Math.sin(tempo * (b.tipo === 'cachorro' ? 14 : 3) + b.fase) * .5;
+      if (g.userData.cabeca) g.userData.cabeca.rotation.z = Math.sin(tempo * 1.3 + b.fase) * .06;
+      const dx = pos.x - g.position.x, dz = pos.z - g.position.z; if (b.tipo !== 'pato' && !(b.tipo === 'cachorro' && b.visto) && perto < 1.5 && perto > .01) { pos.x = g.position.x + dx / perto * 1.5; pos.z = g.position.z + dz / perto * 1.5; }
+    });
+    // ---- pintinhos ----
+    let fila = 0;
+    pintos.forEach(p => { const g = p.g; g.userData.corpo.position.y = Math.abs(Math.sin(tempo * 9 + p.fase)) * .12;
+      if (p.entregue) return;
+      if (!p.segue) { g.rotation.y = Math.sin(tempo + p.fase) * 1.2; if (dist2(pos, g.position.x, g.position.z) < 1.9) { p.segue = true; piu(); confete3d(g.position.x, 1.5, g.position.z, ['♥'], ['#ffcf33', '#ff8fb0']); fala(['Achou um pintinho!', 'Mais um pintinho!', 'Achou todos! Leve para a mamãe!'][pintos.filter(q => q.segue).length - 1] || 'Piu!'); confere(); } return; }
+      fila++; const k = rastro.length - 2 - fila * 12, tx = k >= 0 ? rastro[k] : pos.x - fila, tz = k >= 0 ? rastro[k + 1] : pos.z;
+      const dx = tx - g.position.x, dz = tz - g.position.z, d = Math.hypot(dx, dz);
+      if (d > .15) { const s = Math.min(d, 9 * dt); g.position.x += dx / d * s; g.position.z += dz / d * s; g.rotation.y = Math.atan2(dx, dz); }
+      g.position.y = Math.max(0, alturaChao(g.position.x, g.position.z, 5)[0]);
+      if (Math.random() < dt * .25) piu(.04);
+    });
+    if (!entregues && fila === 3 && dist2(pos, galinha.g.position.x, galinha.g.position.z) < 4.5) {
+      entregues = true; pintos.forEach((p, i) => { p.entregue = true; p.g.position.set(galinha.g.position.x + (i - 1) * 1.1, 0, galinha.g.position.z + 1.3); });
+      sons.galinha(); piu(); galinha.pulo = 1; confete3d(galinha.g.position.x, 2.5, galinha.g.position.z, ['♥'], ['#ff5c8a']); fala('A mamãe galinha ficou feliz! Obrigada!', 700); confere();
+    }
+    // ---- seta, farol, nuvens, mar ----
+    const alvo = trocando ? null : MISSOES[iMissao].alvo();
+    if (alvo) { const d = dist2(pos, alvo.x, alvo.z); farol.visible = true; farol.position.set(alvo.x, 20, alvo.z); farol.material.opacity = .2 + Math.sin(tempo * 3) * .08;
+      seta.visible = d > 7; seta.position.set(pos.x, pos.y + 3.7 + Math.sin(tempo * 4) * .12, pos.z); seta.rotation.y = Math.atan2(alvo.x - pos.x, alvo.z - pos.z); }
+    else { farol.visible = seta.visible = false; }
+    nuvens.forEach((n, i) => { n.position.x += dt * (.6 + i * .08); if (n.position.x > 190) n.position.x = -170; });
+    ondasTex.offset.x = tempo * .006; ondasTex.offset.y = Math.sin(tempo * .3) * .01;
+    // ---- câmera e luz ----
+    const retrato = innerHeight > innerWidth, cy = retrato ? 17 : 10.5, cz = retrato ? 22 : 14.5;
+    v3.set(pos.x, Math.max(pos.y, 0) + cy, pos.z + cz); camera.position.lerp(v3, Math.min(1, 5 * dt));
+    camera.lookAt(camera.position.x, camera.position.y - cy + 1.6, camera.position.z - cz);
+    sol.position.set(pos.x + 22, 38, pos.z + 16); sol.target.position.set(pos.x, 0, pos.z);
+  }
+  function pegouEstrela(p) {
+    plim(880 + (nEstrelas % 5) * 110); confete3d(p.x, p.y, p.z, ['★', '✦'], ['#ffcf33', '#ffe680', '#fff']);
+    $('n-estrelas').textContent = nEstrelas; const e = $('estrelas'); e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); confere();
+  }
+
+  // ================= laço principal =================
+  function ajusta() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.fov = innerHeight > innerWidth ? 62 : 50; camera.updateProjectionMatrix(); }
+  addEventListener('resize', ajusta); ajusta();
+  camera.position.set(0, 14, 30);
+  let ultimo = performance.now(), vestindo = false;
+  function quadro(agora) {
+    const dt = Math.min(.05, (agora - ultimo) / 1000); ultimo = agora;
+    if (rodando) atualiza(dt);
+    else if (vestindo) { tempo += dt; av.position.copy(pos); av.rotation.y = Math.sin(tempo * 1.1) * .7; farol.visible = seta.visible = false;
+      const lado = innerWidth > innerHeight ? 2.4 : 0; camera.position.set(pos.x + lado, pos.y + 2.6, pos.z + 7.5); camera.lookAt(pos.x + lado, pos.y + 1.5, pos.z); sol.position.set(pos.x + 22, 38, pos.z + 16); sol.target.position.set(pos.x, 0, pos.z); }
+    else { tempo += dt; const a = tempo * .12; camera.position.set(Math.sin(a) * 34, 16, 8 + Math.cos(a) * 34); camera.lookAt(0, 2, 0); sol.position.set(22, 38, 24); sol.target.position.set(0, 0, 0);
+      estrelas.forEach((e, i) => { e.m.rotation.y = tempo * 2 + i; }); av.position.copy(pos); farol.visible = seta.visible = false; }
+    if (!window.__semRender) renderer.render(scene, camera);
+    requestAnimationFrame(quadro);
+  }
+  requestAnimationFrame(quadro);
+
+  // ================= telas =================
+  function telaCheia() { try { const d = document.documentElement, p = (d.requestFullscreen || d.webkitRequestFullscreen)?.call(d); if (p && p.catch) p.catch(() => {}); screen.orientation?.lock?.('landscape').catch(() => {}); } catch (e) {} }
+  $('play').addEventListener('click', () => {
+    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); } catch (e) {}
+    telaCheia(); const ini = $('inicio'); ini.style.opacity = 0; setTimeout(() => ini.hidden = true, 500);
+    rodando = true; document.body.classList.add('jogando'); ultimo = performance.now(); fanfarra(); desenhaMissao();
+    fala('Bem-vinda ao Mundo da Fazendinha! ' + MISSOES[0].fala, 600);
+  });
+  $('m-ouvir').addEventListener('click', () => fala(MISSOES[iMissao].fala));
+  $('bt-noite').addEventListener('click', () => { trocaNoite(); $('bt-noite').textContent = noite ? '☀️' : '🌙'; });
+  $('bt-som').addEventListener('click', () => { musicaOn = !musicaOn; $('bt-som').style.opacity = musicaOn ? 1 : .45; });
+  // painel de roupa
+  document.querySelectorAll('#painel .linha').forEach(l => { const k = l.dataset.k;
+    LOOK[k].forEach((v, i) => { const b = document.createElement('button'); b.className = 'cor'; b.setAttribute('aria-label', k + ' ' + (i + 1));
+      if (k === 'enfeite') b.textContent = v; else b.style.background = v;
+      b.addEventListener('click', () => { visual[k] = i; aplicaVisual(); marca(); plim(700 + i * 60); }); l.appendChild(b); }); });
+  function marca() { document.querySelectorAll('#painel .linha').forEach(l => [...l.querySelectorAll('.cor')].forEach((b, i) => b.classList.toggle('sel', visual[l.dataset.k] === i))); }
+  let voltaRodar = false;
+  $('bt-roupa').addEventListener('click', () => { if (vestindo) return; marca(); $('roupa').hidden = false; voltaRodar = rodando; rodando = false; vestindo = true; document.body.classList.add('vestindo'); });
+  $('ok').addEventListener('click', () => { $('roupa').hidden = true; vestindo = false; document.body.classList.remove('vestindo'); rodando = voltaRodar; ultimo = performance.now(); });
+  if (location.hash === '#teste') window.__m = {
+    passo(n, ix, iz, pula) { for (let i = 0; i < n; i++) { stick.x = ix; stick.z = iz; if (pula && i === 0) querPular = true; atualiza(1 / 60); } stick.x = stick.z = 0; },
+    vai(x, y, z) { pos.set(x, y, z); vel.set(0, 0, 0); },
+    estado() { const a = trocando ? null : MISSOES[iMissao].alvo(); return { m: iMissao, trocando, n: nEstrelas, nb: nBaloes, check, dirigindo, noChao, x: pos.x, y: pos.y, z: pos.z, alvo: a ? [a.x, a.z] : null,
+      chaoFrente: alturaChao(pos.x + 1.3, pos.z, pos.y)[0], baloes: baloes.filter(b => b.g.visible).map(b => [b.g.position.x, b.g.position.y, b.g.position.z]), vistos: bichos.filter(b => b.visto).length, pintos: pintos.filter(p => p.segue).length, entregues, obbyFeito }; },
+    pulaTroca() { if (trocando) { iMissao++; trocando = false; desenhaMissao(); } },
+  };
+})();
+</script>
+</body>
+</html>

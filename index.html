@@ -256,6 +256,10 @@
   .fujao.some { pointer-events:none; } .fujao.some svg { opacity:0; }
   .balao { width:calc(min(19vh,15vw) * var(--tam, 1)); }
   @media (orientation:portrait) { .fase { width:min(16vw,12vh); font-size:min(8vw,6vh); } }
+
+  #btn-mundo { position:fixed; left:198px; top:14px; z-index:6; width:78px; height:78px; border-radius:50%; border:6px solid #fff;
+    background:#3a9bf0; box-shadow:0 6px 0 #1f6fc0, 0 12px 18px rgba(0,0,0,.15); display:flex; align-items:center; justify-content:center;
+    font-size:40px; line-height:1; text-decoration:none; animation:pulsa 1.6s ease-in-out infinite; }
 </style>
 </head>
 <body>
@@ -270,6 +274,7 @@
 </div>
 <button id="tela-cheia" aria-label="Tela cheia"><svg viewBox="0 0 24 24" width="28"><path d="M4 9 V4 H9 M15 4 H20 V9 M20 15 V20 H15 M9 20 H4 V15" fill="none" stroke="#3a7bff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 <button id="btn-aprender" aria-label="Aprender">★</button>
+<a id="btn-mundo" href="mundo.html" aria-label="Mundo 3D">🌎</a>
 <button id="btn-brincar" aria-label="Brincar"><svg viewBox="0 0 24 24" width="42"><ellipse cx="12" cy="9.5" rx="6.5" ry="7.5" fill="#fff"/><path d="M12 16.5 l-2 2.6 h4 Z" fill="#fff"/><path d="M12 19 q-2 2 0 3.6" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
 
 <div id="aprender" class="menu" hidden>
