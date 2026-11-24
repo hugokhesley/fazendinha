@@ -107,7 +107,19 @@
   .slot { width:64px; height:64px; border-radius:18px; background:#e8dcc0; color:#fff; font-size:34px; font-weight:800; display:flex; align-items:center; justify-content:center; }
   .slot.ok { background:#fff; box-shadow:0 4px 0 #ecd9ac; }
   body.vestindo #album, body.na-escola #album { display:none; }
-  @media (max-height:520px) { #painel { transform:scale(.8); } .bt { width:54px; height:54px; } #pular { width:96px; height:96px; } }
+  /* painel da roupa: encostado na direita (deitado) ou embaixo (em pé), deixando a boneca à vista */
+  #roupa { flex-direction:row; justify-content:flex-end; align-items:center; padding:0 2.5vw 0 0; }
+  #painel { margin-left:0; max-width:47vw; max-height:94vh; overflow:auto; padding:14px 16px 16px; gap:10px; }
+  #painel .linha { flex-wrap:wrap; gap:8px; }
+  #painel .linha > span { font-size:28px; width:34px; }
+  .cor { width:clamp(38px, 5.2vw, 54px); height:clamp(38px, 5.2vw, 54px); border-width:4px; font-size:clamp(18px, 2.6vw, 26px); }
+  #ok { width:72px; height:72px; }
+  @media (orientation:portrait) {
+    #roupa { flex-direction:column; justify-content:flex-end; align-items:center; padding:0 0 2vh 0; }
+    #painel { max-width:94vw; max-height:46vh; }
+    .cor { width:clamp(38px, 10.5vw, 54px); height:clamp(38px, 10.5vw, 54px); font-size:clamp(18px, 5vw, 26px); }
+  }
+  @media (max-height:520px) { #painel { gap:6px; padding:10px 12px; } .cor { width:36px; height:36px; } #ok, #novo { width:54px; height:54px; } .bt { width:54px; height:54px; } #pular { width:96px; height:96px; } }
 </style>
 </head>
 <body>
@@ -1218,7 +1230,7 @@
     const dt = Math.min(.05, (agora - ultimo) / 1000); ultimo = agora;
     if (rodando) { if (!pausa) atualiza(dt); }
     else if (vestindo) { tempo += dt; av.position.copy(pos); av.rotation.y = Math.sin(tempo * 1.1) * .7; farol.visible = seta.visible = false;
-      const lado = innerWidth > innerHeight ? 2.4 : 0; camera.position.set(pos.x + lado, pos.y + 2.6, pos.z + 7.5); camera.lookAt(pos.x + lado, pos.y + 1.5, pos.z); sol.position.set(pos.x + 22, 38, pos.z + 16); sol.target.position.set(pos.x, 0, pos.z); }
+      const deitado = innerWidth > innerHeight, lado = deitado ? Math.min(3.2, 1.75 * innerWidth / innerHeight) : 0, baixo = deitado ? 0 : 2.3, longe = deitado ? 7.5 : 9.5; camera.position.set(pos.x + lado, pos.y + 2.6 - baixo * .3, pos.z + longe); camera.lookAt(pos.x + lado, pos.y + 1.5 - baixo, pos.z); sol.position.set(pos.x + 22, 38, pos.z + 16); sol.target.position.set(pos.x, 0, pos.z); }
     else { tempo += dt; const a = tempo * .12; camera.position.set(Math.sin(a) * 34, 16, 8 + Math.cos(a) * 34); camera.lookAt(0, 2, 0); sol.position.set(22, 38, 24); sol.target.position.set(0, 0, 0);
       estrelas.forEach((e, i) => { e.m.rotation.y = tempo * 2 + i; }); av.position.copy(pos); farol.visible = seta.visible = false; }
     if (!window.__semRender && !pausa) renderer.render(scene, camera);
